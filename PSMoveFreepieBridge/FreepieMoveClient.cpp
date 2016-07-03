@@ -4,6 +4,10 @@
 
 #include "stdafx.h"
 #include "../thirdparty/headers/FreePIE/freepie_io.h"
+#include "../thirdparty/headers/glm/glm.hpp"
+#include "../thirdparty/headers/glm/gtc/matrix_transform.hpp"
+#include "../thirdparty/headers/glm/gtc/quaternion.hpp"
+#include "../thirdparty/headers/glm/gtc/type_ptr.hpp"
 #include "FreepieMoveClient.h"
 
 __declspec(dllexport) void WriteToFreepie(freepie_io_6dof_data data, int32_t freepieIndex = 0);
@@ -171,14 +175,17 @@ void FreepieMoveClient::update()
 
 		ClientPSMoveView moveView = controller_view->GetPSMoveView();
 		PSMovePose controllerPose = moveView.GetPose();
+
 		freepie_io_6dof_data data;
+		glm::quat glmOrientation = glm::quat(controllerPose.Orientation.w, controllerPose.Orientation.x, controllerPose.Orientation.y, controllerPose.Orientation.z);
+		glm::vec3 eulerRotation = glm::eulerAngles(glmOrientation);
 
 		data.x = controllerPose.Position.x;
 		data.y = controllerPose.Position.y;
 		data.z = controllerPose.Position.z;
-		data.pitch = controllerPose.Orientation.x;
-		data.yaw = controllerPose.Orientation.y;
-		data.roll = controllerPose.Orientation.z;
+		data.pitch = eulerRotation.x;
+		data.yaw = eulerRotation.y;
+		data.roll = eulerRotation.z;
 
 		WriteToFreepie(data);
 
