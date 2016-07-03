@@ -10,6 +10,7 @@ class FreepieMoveClient
 {
 public:
 	FreepieMoveClient();
+	~FreepieMoveClient();
 
 	int run(int32_t controllerID = 0);
 
@@ -29,7 +30,5 @@ private:
 	std::chrono::milliseconds last_report_fps_timestamp;
 	ClientPSMoveAPI::t_request_id start_stream_request_id;
 	int32_t trackedControllerID = 0;
-
-	~FreepieMoveClient();
 };
 

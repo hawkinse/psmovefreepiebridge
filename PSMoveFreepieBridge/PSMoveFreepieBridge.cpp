@@ -9,5 +9,6 @@ int main()
 
 	FreepieMoveClient* client = new FreepieMoveClient();
 	client->run(controllerID);
+	delete client;
 	return 0;
 }
