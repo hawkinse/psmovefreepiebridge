@@ -1,6 +1,7 @@
 def update():
-	freeTrack.pitch = freePieIO[0].pitch
-	freeTrack.roll = freePieIO[0].roll
+    #Right now, you can only use one axis at a time. 
+	freeTrack.pitch = 0 #freePieIO[0].pitch
+	freeTrack.roll = 0 #freePieIO[0].roll
 	freeTrack.yaw = freePieIO[0].yaw
 	#Multiply by 10 for SteamVR use
 	freeTrack.x = (freePieIO[0].x * 10)
