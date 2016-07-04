@@ -8,6 +8,7 @@
 #include "../thirdparty/headers/glm/gtc/matrix_transform.hpp"
 #include "../thirdparty/headers/glm/gtc/quaternion.hpp"
 #include "../thirdparty/headers/glm/gtc/type_ptr.hpp"
+#include "../thirdparty/headers/glm/gtx/euler_angles.hpp"
 #include "FreepieMoveClient.h"
 
 __declspec(dllexport) void WriteToFreepie(freepie_io_6dof_data data, int32_t freepieIndex = 0);
@@ -177,15 +178,21 @@ void FreepieMoveClient::update()
 		PSMovePose controllerPose = moveView.GetPose();
 
 		freepie_io_6dof_data data;
-		glm::quat glmOrientation = glm::quat(controllerPose.Orientation.w, controllerPose.Orientation.x, controllerPose.Orientation.y, controllerPose.Orientation.z);
-		glm::vec3 eulerRotation = glm::eulerAngles(glmOrientation);
+		PSMoveQuaternion normalizedQuat = controllerPose.Orientation.normalize_with_default(*k_psmove_quaternion_identity);
+		//glm::quat glmOrientation = glm::quat(normalizedQuat.w, normalizedQuat.x, normalizedQuat.y, normalizedQuat.z);
 
 		data.x = controllerPose.Position.x;
 		data.y = controllerPose.Position.y;
 		data.z = controllerPose.Position.z;
-		data.pitch = eulerRotation.x;
-		data.yaw = eulerRotation.y;
-		data.roll = eulerRotation.z;
+		//data.pitch = glm::pitch(glmOrientation);
+		//data.yaw = glm::yaw(glmOrientation);
+		//data.roll = glm::roll(glmOrientation);
+
+		//Calcuate rotation here, glm library doesn't work for yaw
+		//Both glm and this seem to work fine when each axis is independent, but issues when combined. 
+		data.yaw = std::atan2(2 * normalizedQuat.y * normalizedQuat.w - 2 * normalizedQuat.x * normalizedQuat.z, 1 - 2 * normalizedQuat.y * normalizedQuat.y - 2 * normalizedQuat.z * normalizedQuat.z);
+		data.roll = std::asin(2 * normalizedQuat.x * normalizedQuat.y + 2 * normalizedQuat.z * normalizedQuat.w);
+		data.pitch = std::atan2(2 * normalizedQuat.x * normalizedQuat.w - 2 * normalizedQuat.y * normalizedQuat.z, 1 - 2 * normalizedQuat.x * normalizedQuat.x - 2 * normalizedQuat.z * normalizedQuat.z);
 
 		WriteToFreepie(data);
 
