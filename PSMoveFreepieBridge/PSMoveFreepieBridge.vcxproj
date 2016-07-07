@@ -113,6 +113,9 @@
       <AdditionalLibraryDirectories>$(SolutionDir)\thirdparty\lib\x64\debug;$(TargetDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>freepie_io.lib;PSMoveClient.lib;FreepieWriterBridge.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>Copy /Y "$(SolutionDir)thirdparty\lib\x64\debug\PSMoveClient.dll" "$(TargetDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
