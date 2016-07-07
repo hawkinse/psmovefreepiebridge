@@ -25,7 +25,7 @@ Releases can be found on the [Downloads](https://bitbucket.org/hawkinse/psmovefr
 ### Alpha 2 ###
 * Fix 360 degree movement on yaw and pitch axis. However, only one axis can be used at a time without issues.
 * Disable roll and pitch in example FreePIE script. If PSMoveFreepieBridge is being used for head tracking, yaw is the most important axis.
-* Compatible with PSMoveService alpha 4.2 and up. Tested through alpha 4.4.
+* Compatible with PSMoveService alpha 4.2 and up.
 
 ### Alpha 1 ###
 * Initial Release
