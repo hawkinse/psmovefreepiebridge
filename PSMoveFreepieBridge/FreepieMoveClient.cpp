@@ -167,7 +167,7 @@ void FreepieMoveClient::update()
 		}
 	}
 
-	if (controller_view)
+	if (controller_view && controller_view->IsValid() && controller_view->GetControllerViewType() == ClientControllerView::PSMove)
 	{
 		std::chrono::milliseconds now =
 			std::chrono::duration_cast< std::chrono::milliseconds >(
@@ -201,6 +201,12 @@ void FreepieMoveClient::update()
 			last_report_fps_timestamp = now;
 		}
 	}
+	/* Commented out to avoid console spam. Curious why this is constantly firing though. 
+	else if(controller_view)
+	{
+		std::cout << "FreepieMoveClient - Controller view is currently invalid or is not tracking a PSMove controller" << std::endl;
+	}
+	*/
 }
 
 void FreepieMoveClient::shutdown()

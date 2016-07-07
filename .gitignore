@@ -8,3 +8,5 @@ FreepieWriterBridge/Debug/*
 FreepieWriterBridge/Release/*
 PSMoveFreepieBridge/Debug/*
 PSMoveFreepieBridge/Release/*
+x64/*
+*.sdf
