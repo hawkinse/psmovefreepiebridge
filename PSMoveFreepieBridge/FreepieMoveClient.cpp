@@ -11,7 +11,7 @@
 #include "../thirdparty/headers/glm/gtx/euler_angles.hpp"
 #include "FreepieMoveClient.h"
 
-__declspec(dllexport) void WriteToFreepie(freepie_io_6dof_data data, int32_t freepieIndex = 0);
+__declspec(dllexport) void WriteToFreepie(freepie_io_6dof_data poseData, freepie_io_6dof_data button1Data, freepie_io_6dof_data button2Data, int32_t freepiePoseIndex = 0, int32_t freepieButton1Index = 1, int32_t freepieButton2Index = 2);
 
 FreepieMoveClient::FreepieMoveClient()
 	: m_keepRunning(true)
@@ -177,24 +177,39 @@ void FreepieMoveClient::update()
 		ClientPSMoveView moveView = controller_view->GetPSMoveView();
 		PSMovePose controllerPose = moveView.GetPose();
 
-		freepie_io_6dof_data data;
+		freepie_io_6dof_data poseData;
 		PSMoveQuaternion normalizedQuat = controllerPose.Orientation.normalize_with_default(*k_psmove_quaternion_identity);
 		//glm::quat glmOrientation = glm::quat(normalizedQuat.w, normalizedQuat.x, normalizedQuat.y, normalizedQuat.z);
 
-		data.x = controllerPose.Position.x;
-		data.y = controllerPose.Position.y;
-		data.z = controllerPose.Position.z;
+		poseData.x = controllerPose.Position.x;
+		poseData.y = controllerPose.Position.y;
+		poseData.z = controllerPose.Position.z;
 		//data.pitch = glm::pitch(glmOrientation);
 		//data.yaw = glm::yaw(glmOrientation);
 		//data.roll = glm::roll(glmOrientation);
 
 		//Calcuate rotation here, glm library doesn't work for yaw
 		//Both glm and this seem to work fine when each axis is independent, but issues when combined. 
-		data.yaw = std::atan2(2 * normalizedQuat.y * normalizedQuat.w - 2 * normalizedQuat.x * normalizedQuat.z, 1 - 2 * normalizedQuat.y * normalizedQuat.y - 2 * normalizedQuat.z * normalizedQuat.z);
-		data.roll = std::asin(2 * normalizedQuat.x * normalizedQuat.y + 2 * normalizedQuat.z * normalizedQuat.w);
-		data.pitch = std::atan2(2 * normalizedQuat.x * normalizedQuat.w - 2 * normalizedQuat.y * normalizedQuat.z, 1 - 2 * normalizedQuat.x * normalizedQuat.x - 2 * normalizedQuat.z * normalizedQuat.z);
+		poseData.yaw = std::atan2(2 * normalizedQuat.y * normalizedQuat.w - 2 * normalizedQuat.x * normalizedQuat.z, 1 - 2 * normalizedQuat.y * normalizedQuat.y - 2 * normalizedQuat.z * normalizedQuat.z);
+		poseData.roll = std::asin(2 * normalizedQuat.x * normalizedQuat.y + 2 * normalizedQuat.z * normalizedQuat.w);
+		poseData.pitch = std::atan2(2 * normalizedQuat.x * normalizedQuat.w - 2 * normalizedQuat.y * normalizedQuat.z, 1 - 2 * normalizedQuat.x * normalizedQuat.x - 2 * normalizedQuat.z * normalizedQuat.z);
 
-		WriteToFreepie(data);
+		//Send button data through pos/rot struct
+		freepie_io_6dof_data buttonData1;
+		buttonData1.x = moveView.GetTriggerValue();
+		buttonData1.y = (moveView.GetButtonTrigger() == PSMoveButtonState::PSMoveButton_DOWN ? 1.0f : 0.0f);
+		buttonData1.z = (moveView.GetButtonMove() == PSMoveButtonState::PSMoveButton_DOWN ? 1.0f : 0.0f);
+		buttonData1.yaw = (moveView.GetButtonPS() == PSMoveButtonState::PSMoveButton_DOWN ? 1.0f : 0.0f);
+		buttonData1.pitch = (moveView.GetButtonStart() == PSMoveButtonState::PSMoveButton_DOWN ? 1.0f : 0.0f);
+		buttonData1.roll = (moveView.GetButtonSelect() == PSMoveButtonState::PSMoveButton_DOWN ? 1.0f : 0.0f);
+
+		freepie_io_6dof_data buttonData2;
+		buttonData2.x = (moveView.GetButtonSquare() == PSMoveButtonState::PSMoveButton_DOWN ? 1.0f : 0.0f);
+		buttonData2.y = (moveView.GetButtonCross() == PSMoveButtonState::PSMoveButton_DOWN ? 1.0f : 0.0f);
+		buttonData2.z = (moveView.GetButtonTriangle() == PSMoveButtonState::PSMoveButton_DOWN ? 1.0f : 0.0f);
+		buttonData2.yaw = (moveView.GetButtonCircle() == PSMoveButtonState::PSMoveButton_DOWN ? 1.0f : 0.0f);
+
+		WriteToFreepie(poseData, buttonData1, buttonData2);
 
 		if (diff.count() > FPS_REPORT_DURATION && controller_view->GetDataFrameFPS() > 0)
 		{

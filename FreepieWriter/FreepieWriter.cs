@@ -38,7 +38,7 @@ namespace FreepieWriter
             bInit = true;
         }
 
-        public static void WriteData(FreepieData data, Int32 freepieIndex = 0)
+        public static void WriteData(FreepieData poseData, FreepieData buttonData1, FreepieData buttonData2, Int32 freepiePoseIndex = 0, Int32 freepieButton1Index = 1, Int32 freepieButton2Index = 2)
         {
             if (!bInit)
             {
@@ -46,12 +46,28 @@ namespace FreepieWriter
             }
 
             FreepieData[] toArray = new FreepieData[1];
-            toArray[0] = data;
-            int result = freepie_io_6dof_write(freepieIndex, 1, toArray);
+            toArray[0] = poseData;
+            int result = freepie_io_6dof_write(freepiePoseIndex, 1, toArray);
 
             if (result != 0)
             {
-                throw new Exception("FreepieWriter - Could not write to freepie index " + freepieIndex + ", Freepie result " + result);
+                throw new Exception("FreepieWriter - Could not write pose to freepie index " + freepiePoseIndex + ", Freepie result " + result);
+            }
+            
+            toArray[0] = buttonData1;
+            result = freepie_io_6dof_write(freepieButton1Index, 1, toArray);
+
+            if (result != 0)
+            {
+                throw new Exception("FreepieWriter - Could not write buttons 1 to freepie index " + freepieButton1Index + ", Freepie result " + result);
+            }
+            
+            toArray[0] = buttonData2;
+            result = freepie_io_6dof_write(freepieButton2Index, 1, toArray);
+
+            if (result != 0)
+            {
+                throw new Exception("FreepieWriter - Could not write buttons 2 to freepie index " + freepieButton2Index + ", Freepie result " + result);
             }
         }
     }
