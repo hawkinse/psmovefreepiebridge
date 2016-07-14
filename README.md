@@ -49,6 +49,7 @@ freePieIO[2].yaw = Circle button
 
 ### Alpha 3 ###
 * Add button support
+* Add an example mouse control script
 
 ### Alpha 2 ###
 * Fix 360 degree movement on yaw and pitch axis. However, only one axis can be used at a time without issues.
