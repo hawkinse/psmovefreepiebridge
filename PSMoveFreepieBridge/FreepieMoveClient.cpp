@@ -11,7 +11,7 @@
 #include "../thirdparty/headers/glm/gtx/euler_angles.hpp"
 #include "FreepieMoveClient.h"
 
-__declspec(dllexport) void WriteToFreepie(freepie_io_6dof_data poseData, freepie_io_6dof_data button1Data, freepie_io_6dof_data button2Data, int32_t freepiePoseIndex = 0, int32_t freepieButton1Index = 1, int32_t freepieButton2Index = 2);
+__declspec(dllexport) void WriteToFreepie(freepie_io_6dof_data poseData, freepie_io_6dof_data extraData1, freepie_io_6dof_data extraData2, int32_t freepiePoseIndex = 0, int32_t freepieButton1Index = 1, int32_t freepieButton2Index = 2);
 
 FreepieMoveClient::FreepieMoveClient()
 	: m_keepRunning(true)
@@ -72,7 +72,7 @@ void FreepieMoveClient::handle_client_psmove_event(ClientPSMoveAPI::eEventType e
 		// Kick off request to start streaming data from the first controller
 		start_stream_request_id =
 			ClientPSMoveAPI::start_controller_data_stream(
-				controller_view, ClientPSMoveAPI::includePositionData);
+				controller_view, ClientPSMoveAPI::includePositionData ^ ClientPSMoveAPI::includeRawSensorData);
 		break;
 	case ClientPSMoveAPI::failedToConnectToService:
 		std::cout << "FreepieMoveClient - Failed to connect to service" << std::endl;
@@ -194,22 +194,25 @@ void FreepieMoveClient::update()
 		poseData.roll = std::asin(2 * normalizedQuat.x * normalizedQuat.y + 2 * normalizedQuat.z * normalizedQuat.w);
 		poseData.pitch = std::atan2(2 * normalizedQuat.x * normalizedQuat.w - 2 * normalizedQuat.y * normalizedQuat.z, 1 - 2 * normalizedQuat.x * normalizedQuat.x - 2 * normalizedQuat.z * normalizedQuat.z);
 
-		//Send button data through pos/rot struct
-		freepie_io_6dof_data buttonData1;
-		buttonData1.x = moveView.GetTriggerValue();
-		buttonData1.y = (moveView.GetButtonTrigger() == PSMoveButtonState::PSMoveButton_DOWN ? 1.0f : 0.0f);
-		buttonData1.z = (moveView.GetButtonMove() == PSMoveButtonState::PSMoveButton_DOWN ? 1.0f : 0.0f);
-		buttonData1.yaw = (moveView.GetButtonPS() == PSMoveButtonState::PSMoveButton_DOWN ? 1.0f : 0.0f);
-		buttonData1.pitch = (moveView.GetButtonStart() == PSMoveButtonState::PSMoveButton_DOWN ? 1.0f : 0.0f);
-		buttonData1.roll = (moveView.GetButtonSelect() == PSMoveButtonState::PSMoveButton_DOWN ? 1.0f : 0.0f);
+		PSMoveRawSensorData sensors = moveView.GetRawSensorData();
 
-		freepie_io_6dof_data buttonData2;
-		buttonData2.x = (moveView.GetButtonSquare() == PSMoveButtonState::PSMoveButton_DOWN ? 1.0f : 0.0f);
-		buttonData2.y = (moveView.GetButtonCross() == PSMoveButtonState::PSMoveButton_DOWN ? 1.0f : 0.0f);
-		buttonData2.z = (moveView.GetButtonTriangle() == PSMoveButtonState::PSMoveButton_DOWN ? 1.0f : 0.0f);
-		buttonData2.yaw = (moveView.GetButtonCircle() == PSMoveButtonState::PSMoveButton_DOWN ? 1.0f : 0.0f);
+		//Send sensor data through pos/rot struct
+		freepie_io_6dof_data sensorData1;
+		sensorData1.x = sensors.Accelerometer.i;
+		sensorData1.y = sensors.Accelerometer.j;
+		sensorData1.z = sensors.Accelerometer.k;
 
-		WriteToFreepie(poseData, buttonData1, buttonData2);
+		sensorData1.pitch = sensors.Gyroscope.i;
+		sensorData1.roll = sensors.Gyroscope.j;
+		sensorData1.yaw = sensors.Gyroscope.k;
+
+		freepie_io_6dof_data sensorData2;
+		sensorData2.x = sensors.Magnetometer.i;
+		sensorData2.y = sensors.Magnetometer.j;
+		sensorData2.z = sensors.Magnetometer.k;
+
+
+		WriteToFreepie(poseData, sensorData1, sensorData1);
 
 		if (diff.count() > FPS_REPORT_DURATION && controller_view->GetDataFrameFPS() > 0)
 		{

@@ -3,15 +3,14 @@ def update():
 	global lastX
 	global lastY
 	global cursorScale
+	global wheelVal
 	
 	#bind left mouse to trigger button
 	#Right mouse to Move button
 	#Middle mouse to Square
-	#Scroll up to Triangle
-	#Scroll down to Circle
-	mouse.leftButton = freePieIO[1].y
-	mouse.rightButton = freePieIO[1].z
-	mouse.middleButton = freePieIO[2].x
+	mouse.leftButton = joystick[0].getDown(20)
+	mouse.rightButton = joystick[0].getDown(19)
+	mouse.middleButton = joystick[0].getDown(15)
 	
 	mouse.deltaX = (freePieIO[0].x - lastX) * cursorScale
 	mouse.deltaY = -1 * (freePieIO[0].y - lastY) * cursorScale
