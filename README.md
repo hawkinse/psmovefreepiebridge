@@ -1,6 +1,6 @@
 # README #
 
-PSMoveFreepieBridge is a client for [PSMoveService](https://github.com/cboulay/PSMoveService) that takes the location, rotation and button data of a controller and passes it into [FreePIE](https://andersmalmgren.github.io/FreePIE/).
+PSMoveFreepieBridge is a client for [PSMoveService](https://github.com/cboulay/PSMoveService) that takes the location and rotation data of a controller and passes it into [FreePIE](https://andersmalmgren.github.io/FreePIE/).
 
 Releases can be found on the [Downloads](https://bitbucket.org/hawkinse/psmovefreepiebridge/downloads) page.
 
@@ -24,28 +24,18 @@ Releases can be found on the [Downloads](https://bitbucket.org/hawkinse/psmovefr
 
 freePieIO[0] = position and rotational data
 
-freePieIO[1].x = Trigger analog value
+freePieIO[1].x/y/z = Accelerometer data
 
-freePieIO[1].y = Trigger button
+freePieIO[1].pitch/roll/yaw = Gyroscope data
 
-freePieIO[1].z = Move button
-
-freePieIO[1].yaw = PS button
-
-freePieIO[1].pitch = Start button
-
-freePieIO[1].roll = Select button
-
-freePieIO[2].x = Square button
-
-freePieIO[2].y = Cross button
-
-freePieIO[2].z = Triangle button
-
-freePieIO[2].yaw = Circle button
-
+freePieIO[2].x/y/z = Magnetometer data
 
 # Release Changelog #
+
+### Alpha 4 ###
+* Remove button support. FreePIE can already read PS Move button input using joystick[0].
+* Add support for raw sensor data.
+* Update example mouse control script to use joystick and gyroscope movement.
 
 ### Alpha 3 ###
 * Add button support
