@@ -18,10 +18,10 @@ def update():
 	#lastY = freePieIO[0].y
 	
 	#Mouse movement using Gryoscope
-	#mouse.deltaX = -1 * freePieIO[1].yaw
-	#mouse.deltaY = -1 * freePieIO[1].pitch
-	#lastX = 0
-	#lastY = 0
+	mouse.deltaX = -1 * freePieIO[1].yaw
+	mouse.deltaY = -1 * freePieIO[1].pitch
+	lastX = 0
+	lastY = 0
 	
 if starting:
 	lastX = freePieIO[0].x
