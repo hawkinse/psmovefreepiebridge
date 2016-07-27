@@ -9,11 +9,13 @@ Releases can be found on the [Downloads](https://bitbucket.org/hawkinse/psmovefr
 
 2. Start PSMoveFreepieBridge.
 
-3. Enter the controller ID you wish to track and press Enter. This can be found using PSMoveConfigTool.
+3. Enter the number of controllers you wish to track and press enter.
 
-4. Open FreePIE, File>Open the included freepie example script
+4. For each controller, enter the controller ID you wish to track and press Enter. This can be found using PSMoveConfigTool.
 
-5. Script>Run
+5. Open FreePIE, File>Open the included freepie example script
+
+6. Script>Run
 
 # VRidge Users #
 * If using with Riftcat VRidge for head tracking purposes, make sure to set Tracking source to either "Phone orientation and FreeTrack position" or "FreeTrack orientation and position" in the desktop app's settings. 
@@ -24,13 +26,20 @@ Releases can be found on the [Downloads](https://bitbucket.org/hawkinse/psmovefr
 
 freePieIO[0] = position and rotational data
 
+If tracking single controller:
+
 freePieIO[1].x/y/z = Accelerometer data
 
 freePieIO[1].pitch/roll/yaw = Gyroscope data
 
 freePieIO[2].x/y/z = Magnetometer data
 
+If tracking multiple controllers, each index is for a different controller.
+
 # Release Changelog #
+
+### Alpha 5 ###
+* Add support for up to 4 controllers. Note that tracking more than one controller disables raw sensor data access.
 
 ### Alpha 4 ###
 * Remove button support. FreePIE can already read PS Move button input using joystick[0].
