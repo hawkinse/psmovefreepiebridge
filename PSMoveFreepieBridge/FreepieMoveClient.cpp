@@ -14,20 +14,18 @@
 __declspec(dllexport) void WriteToFreepie(freepie_io_6dof_data data, int32_t freepieIndex = 0);
 
 FreepieMoveClient::FreepieMoveClient()
-	: m_keepRunning(true)
-	, controller_view(nullptr)
-	, start_stream_request_id(-1)
 {
 }
 
-int FreepieMoveClient::run(int32_t controllerID, int32_t freepieIndex, bool sendSensorData)
+int FreepieMoveClient::run(int32_t controllerCount, int32_t controllerIDs[], int32_t freepieIndicies[], bool sendSensorData)
 {
 	// Attempt to start and run the client
 	try
 	{
-		trackedControllerID = controllerID;
-		trackedFreepieIndex = freepieIndex;
+		trackedControllerIDs = controllerIDs;
+		trackedFreepieIndicies = freepieIndicies;
 		m_sendSensorData = sendSensorData;
+		trackedControllerCount = controllerCount;
 
 		if (startup())
 		{
@@ -69,12 +67,15 @@ void FreepieMoveClient::handle_client_psmove_event(ClientPSMoveAPI::eEventType e
 		std::cout << "FreepieMoveClient - Connected to service" << std::endl;
 
 		// Once created, updates will automatically get pushed into this view
-		controller_view = ClientPSMoveAPI::allocate_controller_view(trackedControllerID);
+		for (int i = 0; i < trackedControllerCount; i++)
+		{
+			controller_views[i] = ClientPSMoveAPI::allocate_controller_view(trackedControllerIDs[i]);
 
-		// Kick off request to start streaming data from the first controller
-		start_stream_request_id =
-			ClientPSMoveAPI::start_controller_data_stream(
-				controller_view, (m_sendSensorData ? ClientPSMoveAPI::includePositionData | ClientPSMoveAPI::includeRawSensorData : ClientPSMoveAPI::includePositionData));
+			// Kick off request to start streaming data from the first controller
+			start_stream_request_ids[i] =
+				ClientPSMoveAPI::start_controller_data_stream(
+					controller_views[i], (m_sendSensorData ? ClientPSMoveAPI::includePositionData | ClientPSMoveAPI::includeRawSensorData : ClientPSMoveAPI::includePositionData));
+		}
 		break;
 	case ClientPSMoveAPI::failedToConnectToService:
 		std::cout << "FreepieMoveClient - Failed to connect to service" << std::endl;
@@ -94,24 +95,12 @@ void FreepieMoveClient::handle_client_psmove_event(ClientPSMoveAPI::eEventType e
 	}
 }
 
-void FreepieMoveClient::handle_acquire_controller(ClientPSMoveAPI::eClientPSMoveResultCode resultCode)
+void FreepieMoveClient::handle_acquire_controller(ClientPSMoveAPI::eClientPSMoveResultCode resultCode, int32_t trackedControllerIndex)
 {
 	if (resultCode == ClientPSMoveAPI::_clientPSMoveResultCode_ok)
 	{
 		std::cout << "FreepieMoveClient - Acquired controller "
-			<< controller_view->GetControllerID() << std::endl;
-
-		// Updates will now automatically get pushed into the controller view
-
-		if (controller_view->GetControllerViewType() == ClientControllerView::PSMove)
-		{
-			const ClientPSMoveView &PSMoveView = controller_view->GetPSMoveView();
-
-			if (PSMoveView.GetIsCurrentlyTracking())
-			{
-				PSMovePosition controller_position = PSMoveView.GetPosition();
-			}
-		}
+			<< controller_views[trackedControllerIndex]->GetControllerID() << std::endl;
 	}
 	else
 	{
@@ -156,11 +145,14 @@ void FreepieMoveClient::update()
 		switch (message.payload_type)
 		{
 		case ClientPSMoveAPI::_messagePayloadType_Response:
-			if (start_stream_request_id != -1 &&
-				message.response_data.request_id == start_stream_request_id)
+			for (int i = 0; i < trackedControllerCount; i++)
 			{
-				handle_acquire_controller(message.response_data.result_code);
-				start_stream_request_id = -1;
+				if (start_stream_request_ids[i] != -1 &&
+					message.response_data.request_id == start_stream_request_ids[i])
+				{
+					handle_acquire_controller(message.response_data.result_code, i);
+					start_stream_request_ids[i] = -1;
+				}
 			}
 			break;
 		case ClientPSMoveAPI::_messagePayloadType_Event:
@@ -169,81 +161,81 @@ void FreepieMoveClient::update()
 		}
 	}
 
-	if (controller_view && controller_view->IsValid() && controller_view->GetControllerViewType() == ClientControllerView::PSMove)
+	for (int i = 0; i < trackedControllerCount; i++)
 	{
-		std::chrono::milliseconds now =
-			std::chrono::duration_cast< std::chrono::milliseconds >(
-				std::chrono::system_clock::now().time_since_epoch());
-		std::chrono::milliseconds diff = now - last_report_fps_timestamp;
-
-		ClientPSMoveView moveView = controller_view->GetPSMoveView();
-		PSMovePose controllerPose = moveView.GetPose();
-
-		freepie_io_6dof_data poseData;
-		PSMoveQuaternion normalizedQuat = controllerPose.Orientation.normalize_with_default(*k_psmove_quaternion_identity);
-		//glm::quat glmOrientation = glm::quat(normalizedQuat.w, normalizedQuat.x, normalizedQuat.y, normalizedQuat.z);
-
-		poseData.x = controllerPose.Position.x;
-		poseData.y = controllerPose.Position.y;
-		poseData.z = controllerPose.Position.z;
-		//data.pitch = glm::pitch(glmOrientation);
-		//data.yaw = glm::yaw(glmOrientation);
-		//data.roll = glm::roll(glmOrientation);
-
-		//Calcuate rotation here, glm library doesn't work for yaw
-		//Both glm and this seem to work fine when each axis is independent, but issues when combined. 
-		poseData.yaw = std::atan2(2 * normalizedQuat.y * normalizedQuat.w - 2 * normalizedQuat.x * normalizedQuat.z, 1 - 2 * normalizedQuat.y * normalizedQuat.y - 2 * normalizedQuat.z * normalizedQuat.z);
-		poseData.roll = std::asin(2 * normalizedQuat.x * normalizedQuat.y + 2 * normalizedQuat.z * normalizedQuat.w);
-		poseData.pitch = std::atan2(2 * normalizedQuat.x * normalizedQuat.w - 2 * normalizedQuat.y * normalizedQuat.z, 1 - 2 * normalizedQuat.x * normalizedQuat.x - 2 * normalizedQuat.z * normalizedQuat.z);
-
-		WriteToFreepie(poseData, trackedFreepieIndex);
-
-		if (m_sendSensorData)
+		if (controller_views[i] && controller_views[i]->IsValid() && controller_views[i]->GetControllerViewType() == ClientControllerView::PSMove)
 		{
-			PSMoveRawSensorData sensors = moveView.GetRawSensorData();
+			std::chrono::milliseconds now =
+				std::chrono::duration_cast<std::chrono::milliseconds>(
+					std::chrono::system_clock::now().time_since_epoch());
+			std::chrono::milliseconds diff = now - last_report_fps_timestamp;
 
-			//Send sensor data through pos/rot struct
-			freepie_io_6dof_data sensorData1;
-			sensorData1.x = sensors.Accelerometer.i;
-			sensorData1.y = sensors.Accelerometer.j;
-			sensorData1.z = sensors.Accelerometer.k;
+			ClientPSMoveView moveView = controller_views[i]->GetPSMoveView();
+			PSMovePose controllerPose = moveView.GetPose();
 
-			sensorData1.pitch = sensors.Gyroscope.i;
-			sensorData1.roll = sensors.Gyroscope.j;
-			sensorData1.yaw = sensors.Gyroscope.k;
+			freepie_io_6dof_data poseData;
+			PSMoveQuaternion normalizedQuat = controllerPose.Orientation.normalize_with_default(*k_psmove_quaternion_identity);
+			//glm::quat glmOrientation = glm::quat(normalizedQuat.w, normalizedQuat.x, normalizedQuat.y, normalizedQuat.z);
 
-			WriteToFreepie(sensorData1, 1);
+			poseData.x = controllerPose.Position.x;
+			poseData.y = controllerPose.Position.y;
+			poseData.z = controllerPose.Position.z;
+			//data.pitch = glm::pitch(glmOrientation);
+			//data.yaw = glm::yaw(glmOrientation);
+			//data.roll = glm::roll(glmOrientation);
 
-			freepie_io_6dof_data sensorData2;
-			sensorData2.x = (float)sensors.Magnetometer.i;
-			sensorData2.y = (float)sensors.Magnetometer.j;
-			sensorData2.z = (float)sensors.Magnetometer.k;			
+			//Calcuate rotation here, glm library doesn't work for yaw
+			//Both glm and this seem to work fine when each axis is independent, but issues when combined. 
+			poseData.yaw = std::atan2(2 * normalizedQuat.y * normalizedQuat.w - 2 * normalizedQuat.x * normalizedQuat.z, 1 - 2 * normalizedQuat.y * normalizedQuat.y - 2 * normalizedQuat.z * normalizedQuat.z);
+			poseData.roll = std::asin(2 * normalizedQuat.x * normalizedQuat.y + 2 * normalizedQuat.z * normalizedQuat.w);
+			poseData.pitch = std::atan2(2 * normalizedQuat.x * normalizedQuat.w - 2 * normalizedQuat.y * normalizedQuat.z, 1 - 2 * normalizedQuat.x * normalizedQuat.x - 2 * normalizedQuat.z * normalizedQuat.z);
 
-			WriteToFreepie(sensorData2, 2);
+			WriteToFreepie(poseData, trackedFreepieIndicies[i]);
+
+			if (m_sendSensorData)
+			{
+				PSMoveRawSensorData sensors = moveView.GetRawSensorData();
+
+				//Send sensor data through pos/rot struct
+				freepie_io_6dof_data sensorData1;
+				sensorData1.x = sensors.Accelerometer.i;
+				sensorData1.y = sensors.Accelerometer.j;
+				sensorData1.z = sensors.Accelerometer.k;
+
+				sensorData1.pitch = sensors.Gyroscope.i;
+				sensorData1.roll = sensors.Gyroscope.j;
+				sensorData1.yaw = sensors.Gyroscope.k;
+
+				WriteToFreepie(sensorData1, 1);
+
+				freepie_io_6dof_data sensorData2;
+				sensorData2.x = (float)sensors.Magnetometer.i;
+				sensorData2.y = (float)sensors.Magnetometer.j;
+				sensorData2.z = (float)sensors.Magnetometer.k;
+
+				WriteToFreepie(sensorData2, 2);
+			}
 		}
-
-		if (diff.count() > FPS_REPORT_DURATION && controller_view->GetDataFrameFPS() > 0)
+		/* Commented out to avoid console spam. Curious why this is constantly firing though.
+		else if(controller_view)
 		{
-			last_report_fps_timestamp = now;
+			std::cout << "FreepieMoveClient - Controller view is currently invalid or is not tracking a PSMove controller" << std::endl;
 		}
+		*/
 	}
-	/* Commented out to avoid console spam. Curious why this is constantly firing though. 
-	else if(controller_view)
-	{
-		std::cout << "FreepieMoveClient - Controller view is currently invalid or is not tracking a PSMove controller" << std::endl;
-	}
-	*/
 }
 
 void FreepieMoveClient::shutdown()
 {
 	// Free any allocated controller views
-	if (controller_view)
+	for (int i = 0; i < trackedControllerCount; i++)
 	{
-		ClientPSMoveAPI::free_controller_view(controller_view);
-		controller_view = nullptr;
+		if (controller_views[i])
+		{
+			ClientPSMoveAPI::free_controller_view(controller_views[i]);
+			controller_views[i] = nullptr;
+		}
 	}
-
 	// Close all active network connections
 	ClientPSMoveAPI::shutdown();
 }

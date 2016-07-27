@@ -12,11 +12,11 @@ public:
 	FreepieMoveClient();
 	~FreepieMoveClient();
 
-	int FreepieMoveClient::run(int32_t controllerID = 0, int32_t freepieIndex = 0, bool sendSensorData = true);
+	int run(int32_t controllerCount, int32_t controllerIDs[], int32_t freepieIndicies[], bool sendSensorData = true);
 
 	void handle_client_psmove_event(ClientPSMoveAPI::eEventType event_type);
 
-	void handle_acquire_controller(ClientPSMoveAPI::eClientPSMoveResultCode resultCode);
+	void handle_acquire_controller(ClientPSMoveAPI::eClientPSMoveResultCode resultCode, int32_t trackedControllerIndex);
 
 	bool startup();
 
@@ -25,12 +25,13 @@ public:
 	void shutdown();
 
 private:
-	bool m_keepRunning;
-	ClientControllerView *controller_view;
+	bool m_keepRunning = true;
+	ClientControllerView *controller_views[4] = { nullptr, nullptr, nullptr, nullptr };
 	std::chrono::milliseconds last_report_fps_timestamp;
-	ClientPSMoveAPI::t_request_id start_stream_request_id;
-	int32_t trackedControllerID = 0;
-	int32_t trackedFreepieIndex = 0;
+	ClientPSMoveAPI::t_request_id start_stream_request_ids[4] = { -1, -1, -1, -1 };
+	int32_t* trackedControllerIDs;
+	int32_t* trackedFreepieIndicies;
+	int32_t trackedControllerCount = 1;
 	bool m_sendSensorData = false;
 };
 
