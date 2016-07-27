@@ -11,7 +11,7 @@
 #include "../thirdparty/headers/glm/gtx/euler_angles.hpp"
 #include "FreepieMoveClient.h"
 
-__declspec(dllexport) void WriteToFreepie(freepie_io_6dof_data poseData, freepie_io_6dof_data extraData1, freepie_io_6dof_data extraData2, int32_t freepiePoseIndex = 0, int32_t freepieButton1Index = 1, int32_t freepieButton2Index = 2);
+__declspec(dllexport) void WriteToFreepie(freepie_io_6dof_data data, int32_t freepieIndex = 0);
 
 FreepieMoveClient::FreepieMoveClient()
 	: m_keepRunning(true)
@@ -20,12 +20,14 @@ FreepieMoveClient::FreepieMoveClient()
 {
 }
 
-int FreepieMoveClient::run(int32_t controllerID)
+int FreepieMoveClient::run(int32_t controllerID, int32_t freepieIndex, bool sendSensorData)
 {
 	// Attempt to start and run the client
 	try
 	{
 		trackedControllerID = controllerID;
+		trackedFreepieIndex = freepieIndex;
+		m_sendSensorData = sendSensorData;
 
 		if (startup())
 		{
@@ -72,7 +74,7 @@ void FreepieMoveClient::handle_client_psmove_event(ClientPSMoveAPI::eEventType e
 		// Kick off request to start streaming data from the first controller
 		start_stream_request_id =
 			ClientPSMoveAPI::start_controller_data_stream(
-				controller_view, ClientPSMoveAPI::includePositionData ^ ClientPSMoveAPI::includeRawSensorData);
+				controller_view, (m_sendSensorData ? ClientPSMoveAPI::includePositionData | ClientPSMoveAPI::includeRawSensorData : ClientPSMoveAPI::includePositionData));
 		break;
 	case ClientPSMoveAPI::failedToConnectToService:
 		std::cout << "FreepieMoveClient - Failed to connect to service" << std::endl;
@@ -194,25 +196,31 @@ void FreepieMoveClient::update()
 		poseData.roll = std::asin(2 * normalizedQuat.x * normalizedQuat.y + 2 * normalizedQuat.z * normalizedQuat.w);
 		poseData.pitch = std::atan2(2 * normalizedQuat.x * normalizedQuat.w - 2 * normalizedQuat.y * normalizedQuat.z, 1 - 2 * normalizedQuat.x * normalizedQuat.x - 2 * normalizedQuat.z * normalizedQuat.z);
 
-		PSMoveRawSensorData sensors = moveView.GetRawSensorData();
+		WriteToFreepie(poseData, trackedFreepieIndex);
 
-		//Send sensor data through pos/rot struct
-		freepie_io_6dof_data sensorData1;
-		sensorData1.x = sensors.Accelerometer.i;
-		sensorData1.y = sensors.Accelerometer.j;
-		sensorData1.z = sensors.Accelerometer.k;
+		if (m_sendSensorData)
+		{
+			PSMoveRawSensorData sensors = moveView.GetRawSensorData();
 
-		sensorData1.pitch = sensors.Gyroscope.i;
-		sensorData1.roll = sensors.Gyroscope.j;
-		sensorData1.yaw = sensors.Gyroscope.k;
+			//Send sensor data through pos/rot struct
+			freepie_io_6dof_data sensorData1;
+			sensorData1.x = sensors.Accelerometer.i;
+			sensorData1.y = sensors.Accelerometer.j;
+			sensorData1.z = sensors.Accelerometer.k;
 
-		freepie_io_6dof_data sensorData2;
-		sensorData2.x = sensors.Magnetometer.i;
-		sensorData2.y = sensors.Magnetometer.j;
-		sensorData2.z = sensors.Magnetometer.k;
+			sensorData1.pitch = sensors.Gyroscope.i;
+			sensorData1.roll = sensors.Gyroscope.j;
+			sensorData1.yaw = sensors.Gyroscope.k;
 
+			WriteToFreepie(sensorData1, 1);
 
-		WriteToFreepie(poseData, sensorData1, sensorData1);
+			freepie_io_6dof_data sensorData2;
+			sensorData2.x = (float)sensors.Magnetometer.i;
+			sensorData2.y = (float)sensors.Magnetometer.j;
+			sensorData2.z = (float)sensors.Magnetometer.k;			
+
+			WriteToFreepie(sensorData2, 2);
+		}
 
 		if (diff.count() > FPS_REPORT_DURATION && controller_view->GetDataFrameFPS() > 0)
 		{

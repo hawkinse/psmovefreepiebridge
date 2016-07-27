@@ -12,7 +12,7 @@ public:
 	FreepieMoveClient();
 	~FreepieMoveClient();
 
-	int run(int32_t controllerID = 0);
+	int FreepieMoveClient::run(int32_t controllerID = 0, int32_t freepieIndex = 0, bool sendSensorData = true);
 
 	void handle_client_psmove_event(ClientPSMoveAPI::eEventType event_type);
 
@@ -30,5 +30,7 @@ private:
 	std::chrono::milliseconds last_report_fps_timestamp;
 	ClientPSMoveAPI::t_request_id start_stream_request_id;
 	int32_t trackedControllerID = 0;
+	int32_t trackedFreepieIndex = 0;
+	bool m_sendSensorData = false;
 };
 
