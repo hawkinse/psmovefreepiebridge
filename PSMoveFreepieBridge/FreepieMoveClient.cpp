@@ -180,6 +180,7 @@ void FreepieMoveClient::update()
 			poseData.x = controllerPose.Position.x;
 			poseData.y = controllerPose.Position.y;
 			poseData.z = controllerPose.Position.z;
+
 			//data.pitch = glm::pitch(glmOrientation);
 			//data.yaw = glm::yaw(glmOrientation);
 			//data.roll = glm::roll(glmOrientation);
