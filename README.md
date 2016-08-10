@@ -40,21 +40,24 @@ If tracking multiple controllers, each index is for a different controller.
 
 ### Alpha 5 ###
 * Add support for up to 4 controllers. Note that tracking more than one controller disables raw sensor data access.
+* Compatible with PSMoveService alpha 4.2 through alpha 4.6.
 
 ### Alpha 4 ###
 * Remove button support. FreePIE can already read PS Move button input using joystick[0].
 * Add support for raw sensor data.
 * Update example mouse control script to use joystick and gyroscope movement.
+* Compatible with PSMoveService alpha 4.2 through alpha 4.6.
 
 ### Alpha 3 ###
 * Add button support
 * Add an example mouse control script
+* Compatible with PSMoveService alpha 4.2 through alpha 4.6.
 
 ### Alpha 2 ###
 * Fix 360 degree movement on yaw and pitch axis. However, only one axis can be used at a time without issues.
 * Disable roll and pitch in example FreePIE script. If PSMoveFreepieBridge is being used for head tracking, yaw is the most important axis.
-* Compatible with PSMoveService alpha 4.2 and up.
+* Compatible with PSMoveService alpha 4.2 through alpha 4.6.
 
 ### Alpha 1 ###
 * Initial Release
-* Compatible with PSMoveService alpha 4.2 and up.
+* Compatible with PSMoveService alpha 4.2 through alpha 4.6.
