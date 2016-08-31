@@ -20,7 +20,7 @@ Releases can be found on the [Downloads](https://bitbucket.org/hawkinse/psmovefr
 # VRidge Users #
 * If using with Riftcat VRidge for head tracking purposes, make sure to set Tracking source to either "Phone orientation and FreeTrack position" or "FreeTrack orientation and position" in the desktop app's settings. 
 * If using with a Google Cardboard headset and you can't get rotation to work at all, it is likely because your headset contains a magnet based button. Either mount your PS Move controller on the side opposing the button, or remove the magnet.
-* There will be a controller that occasionally floats in front of you or clips through your head. This is because all PSMoveService clients are capable of seeing all controllers, so Steam VR still sees the head tracking controller. There is nothing I can do about this on the PSMoveFreepieBridge side.
+* There will be a controller that occasionally floats in front of you or clips through your head. This is because all PSMoveService clients are capable of seeing all controllers, so Steam VR still sees the head tracking controller. There is nothing I can do about this on the PSMoveFreepieBridge side. 
 
 # Freepie IO mapping #
 
@@ -37,6 +37,9 @@ freePieIO[2].x/y/z = Magnetometer data
 If tracking multiple controllers, each index is for a different controller.
 
 # Release Changelog #
+
+### Alpha 6 ###
+* Fix compatibility with PSMoveService alpha 5
 
 ### Alpha 5 ###
 * Add support for up to 4 controllers. Note that tracking more than one controller disables raw sensor data access.
