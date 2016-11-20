@@ -12,7 +12,7 @@ public:
 	FreepieMoveClient();
 	~FreepieMoveClient();
 
-	int run(int32_t controllerCount, int32_t controllerIDs[], int32_t freepieIndicies[], bool sendSensorData = true);
+	int run(int32_t controllerCount, int32_t controllerIDs[], int32_t bulbColors[], int32_t freepieIndicies[], bool sendSensorData = true);
 
 	void handle_client_psmove_event(ClientPSMoveAPI::eEventType event_type);
 
@@ -31,6 +31,7 @@ private:
 	ClientPSMoveAPI::t_request_id start_stream_request_ids[4] = { -1, -1, -1, -1 };
 	int32_t* trackedControllerIDs;
 	int32_t* trackedFreepieIndicies;
+	int32_t* trackedBulbColors;
 	int32_t trackedControllerCount = 1;
 	bool m_sendSensorData = false;
 };

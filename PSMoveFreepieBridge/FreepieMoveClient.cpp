@@ -17,13 +17,14 @@ FreepieMoveClient::FreepieMoveClient()
 {
 }
 
-int FreepieMoveClient::run(int32_t controllerCount, int32_t controllerIDs[], int32_t freepieIndicies[], bool sendSensorData)
+int FreepieMoveClient::run(int32_t controllerCount, int32_t controllerIDs[], int32_t bulbColors[], int32_t freepieIndicies[], bool sendSensorData)
 {
 	// Attempt to start and run the client
 	try
 	{
 		trackedControllerIDs = controllerIDs;
 		trackedFreepieIndicies = freepieIndicies;
+		trackedBulbColors = bulbColors;
 		m_sendSensorData = sendSensorData;
 		trackedControllerCount = controllerCount;
 
@@ -75,6 +76,11 @@ void FreepieMoveClient::handle_client_psmove_event(ClientPSMoveAPI::eEventType e
 			start_stream_request_ids[i] =
 				ClientPSMoveAPI::start_controller_data_stream(
 					controller_views[i], (m_sendSensorData ? ClientPSMoveAPI::includePositionData | ClientPSMoveAPI::includeRawSensorData : ClientPSMoveAPI::includePositionData));
+
+			//Set bulb color if specified
+			if ((trackedBulbColors[i] >= 0) && (trackedBulbColors[i] < PSMoveTrackingColorType::MAX_PSMOVE_COLOR_TYPES)) {
+				ClientPSMoveAPI::set_led_tracking_color(controller_views[i], (PSMoveTrackingColorType)trackedBulbColors[i]);
+			}
 		}
 		break;
 	case ClientPSMoveAPI::failedToConnectToService:
@@ -206,7 +212,6 @@ void FreepieMoveClient::update()
 				sensorData1.pitch = sensors.Gyroscope.i;
 				sensorData1.roll = sensors.Gyroscope.j;
 				sensorData1.yaw = sensors.Gyroscope.k;
-
 				WriteToFreepie(sensorData1, 1);
 
 				freepie_io_6dof_data sensorData2;
