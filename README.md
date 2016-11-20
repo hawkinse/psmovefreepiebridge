@@ -38,6 +38,9 @@ If tracking multiple controllers, each index is for a different controller.
 
 # Release Changelog #
 
+### Alpha 7 ###
+* Added ability to set the bulb color of the tracked controllers
+
 ### Alpha 6 ###
 * Fix compatibility with PSMoveService alpha 5
 
