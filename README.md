@@ -35,7 +35,30 @@ freePieIO[2].x/y/z = Magnetometer data
 
 If tracking multiple controllers, each index is for a different controller.
 
+If tracking less than four controllers, button and trigger data can also be read from freePieIO[3]. Trigger data is stored in the orientation values (yaw/pitch/roll) while button presses are in the location values (x/y/z). Button data is stored as individual bits:
+
+Bit 0 - Square
+
+Bit 1 - Triangle
+
+Bit 2 - Cross
+
+Bit 3 - Circle
+
+Bit 4 - Move
+
+Bit 5 - PS
+
+Bit 6 - Start
+
+Bit 7 - Select
+
 # Release Changelog #
+
+### Alpha 8 ###
+* Button support brought back, this time for up to three controllers
+* Mouse example script updated to use new button support instead of FreePIE Joystick.
+* Standard example script should now handle controller rotation better in Riftcat VRidge.
 
 ### Alpha 7 ###
 * Added ability to set the bulb color of the tracked controllers
