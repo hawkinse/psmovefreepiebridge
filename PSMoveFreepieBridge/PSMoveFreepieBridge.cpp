@@ -4,7 +4,7 @@
 int main()
 {
 	int32_t controllerCount = 0;
-	std::cout << "How many controllers do you want to track (1-4)? Note that more than 1 disables raw sensor data access: ";
+	std::cout << "How many controllers do you want to track (1-4)? Note that more than 1 disables raw sensor data access and 4 disables button access: ";
 	std::cin >> controllerCount;
 
 	int32_t controllerIDs[4];
