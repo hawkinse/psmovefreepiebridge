@@ -223,44 +223,42 @@ void FreepieMoveClient::update()
 				sensorData2.z = (float)sensors.Magnetometer.k;
 
 				WriteToFreepie(sensorData2, 2);
+			}
 
-				//If we have less than four controllers, also include button data
-				if (trackedControllerCount < 4)
+			// If we have less than four controllers, also include button data
+			if (trackedControllerCount < 4)
+			{
+				float triggerState = moveView.GetTriggerValue();
+				uint8_t buttonsPressed = 0;
+
+				buttonsPressed |= (moveView.GetButtonSquare() == PSMoveButtonState::PSMoveButton_DOWN);
+				buttonsPressed |= ((moveView.GetButtonTriangle() == PSMoveButtonState::PSMoveButton_DOWN) << 1);
+				buttonsPressed |= ((moveView.GetButtonCross() == PSMoveButtonState::PSMoveButton_DOWN) << 2);
+				buttonsPressed |= ((moveView.GetButtonCircle() == PSMoveButtonState::PSMoveButton_DOWN) << 3);
+				buttonsPressed |= ((moveView.GetButtonMove() == PSMoveButtonState::PSMoveButton_DOWN) << 4);
+				buttonsPressed |= ((moveView.GetButtonPS() == PSMoveButtonState::PSMoveButton_DOWN) << 5);
+				buttonsPressed |= ((moveView.GetButtonStart() == PSMoveButtonState::PSMoveButton_DOWN) << 6);
+				buttonsPressed |= ((moveView.GetButtonSelect() == PSMoveButtonState::PSMoveButton_DOWN) << 7);
+
+				switch (i)
 				{
-					float triggerState = moveView.GetTriggerValue();
-					uint8_t buttonsPressed = 0;
-
-					buttonsPressed |= (moveView.GetButtonSquare() == PSMoveButtonState::PSMoveButton_DOWN);
-					buttonsPressed |= ((moveView.GetButtonTriangle() == PSMoveButtonState::PSMoveButton_DOWN) << 1);
-					buttonsPressed |= ((moveView.GetButtonCross() == PSMoveButtonState::PSMoveButton_DOWN) << 2);
-					buttonsPressed |= ((moveView.GetButtonCircle() == PSMoveButtonState::PSMoveButton_DOWN) << 3);
-					buttonsPressed |= ((moveView.GetButtonMove() == PSMoveButtonState::PSMoveButton_DOWN) << 4);
-					buttonsPressed |= ((moveView.GetButtonPS() == PSMoveButtonState::PSMoveButton_DOWN) << 5);
-					buttonsPressed |= ((moveView.GetButtonStart() == PSMoveButtonState::PSMoveButton_DOWN) << 6);
-					buttonsPressed |= ((moveView.GetButtonSelect() == PSMoveButtonState::PSMoveButton_DOWN) << 7);
-
-					switch (i) 
-					{
-						case 0:
-							buttonData.x = buttonsPressed;
-							buttonData.yaw = triggerState;
-							break;
-						case 1:
-							buttonData.y = buttonsPressed;
-							buttonData.pitch = triggerState;
-							break;
-						case 2:
-							buttonData.z = buttonsPressed;
-							buttonData.roll = triggerState;
-							break;
-						case 3:
-							break;
-						defaut:
-							std::cout << "Unable to set button data for controller " << i << std::endl;
-							break;
-					}
-
-					WriteToFreepie(buttonData, 3);
+					case 0:
+						buttonData.x = buttonsPressed;
+						buttonData.yaw = triggerState;
+						break;
+					case 1:
+						buttonData.y = buttonsPressed;
+						buttonData.pitch = triggerState;
+						break;
+					case 2:
+						buttonData.z = buttonsPressed;
+						buttonData.roll = triggerState;
+						break;
+					case 3:
+						break;
+					defaut:
+						std::cout << "Unable to set button data for controller " << i << std::endl;
+						break;
 				}
 			}
 		}
