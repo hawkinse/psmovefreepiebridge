@@ -7,9 +7,9 @@ def update():
 	#bind left mouse to trigger button
 	#Right mouse to Move button
 	#Middle mouse to Square
-	mouse.leftButton = joystick[0].getDown(20)
-	mouse.rightButton = joystick[0].getDown(19)
-	mouse.middleButton = joystick[0].getDown(15)
+	mouse.leftButton = freePieIO[3].yaw == 1
+	mouse.rightButton = int(freePieIO[3].x) & 0b00010000 > 0
+	mouse.middleButton = int(freePieIO[3].x) & 0b00000001 > 0
 	
 	#Mouse movement using position data
 	#mouse.deltaX = (freePieIO[0].x - lastX) * cursorScale
