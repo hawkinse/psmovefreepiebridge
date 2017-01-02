@@ -39,5 +39,9 @@ int main()
 	FreepieMoveClient* client = new FreepieMoveClient();
 	client->run(controllerCount, controllerIDs, bulbColors, freepieIndicies, controllerCount < 2);
 
+	std::cout << "PSMoveFreepieBridge has ended" << std::endl;
+	
+	std::cin.ignore(INT_MAX);
+
 	return 0;
 }
