@@ -55,6 +55,10 @@ Bit 7 - Select
 
 # Release Changelog #
 
+### Alpha 9 ###
+* Better handling for changes in available controllers. This includes no longer exiting when a controller is added or dropped by PSMoveService, and controllers used for tracking are handled properly when re-added.
+* Console window no longer closes when disconnecting from client if not closed by the user. This will allow the output to be used in diagnosing potential issues.
+
 ### Alpha 8 ###
 * Button support brought back, this time for up to three controllers
 * Mouse example script updated to use new button support instead of FreePIE Joystick.
