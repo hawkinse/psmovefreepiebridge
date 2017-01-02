@@ -67,21 +67,8 @@ void FreepieMoveClient::handle_client_psmove_event(ClientPSMoveAPI::eEventType e
 	case ClientPSMoveAPI::connectedToService:
 		std::cout << "FreepieMoveClient - Connected to service" << std::endl;
 
-		// Once created, updates will automatically get pushed into this view
-		for (int i = 0; i < trackedControllerCount; i++)
-		{
-			controller_views[i] = ClientPSMoveAPI::allocate_controller_view(trackedControllerIDs[i]);
+		init_controller_views();
 
-			// Kick off request to start streaming data from the first controller
-			start_stream_request_ids[i] =
-				ClientPSMoveAPI::start_controller_data_stream(
-					controller_views[i], (m_sendSensorData ? ClientPSMoveAPI::includePositionData | ClientPSMoveAPI::includeRawSensorData : ClientPSMoveAPI::includePositionData));
-
-			//Set bulb color if specified
-			if ((trackedBulbColors[i] >= 0) && (trackedBulbColors[i] < PSMoveTrackingColorType::MAX_PSMOVE_COLOR_TYPES)) {
-				ClientPSMoveAPI::set_led_tracking_color(controller_views[i], (PSMoveTrackingColorType)trackedBulbColors[i]);
-			}
-		}
 		break;
 	case ClientPSMoveAPI::failedToConnectToService:
 		std::cout << "FreepieMoveClient - Failed to connect to service" << std::endl;
@@ -93,7 +80,12 @@ void FreepieMoveClient::handle_client_psmove_event(ClientPSMoveAPI::eEventType e
 		break;
 	case ClientPSMoveAPI::opaqueServiceEvent:
 		std::cout << "FreepieMoveClient - Opaque service event(%d)" << static_cast<int>(event_type) << std::endl;
-		m_keepRunning = false;
+		std::cout << "This could indicate a change in available controllers. PSMoveFreepieBridge will attempt to reinitialize all controller views." << std::endl;
+		//m_keepRunning = false;
+
+		free_controller_views();
+		init_controller_views();
+
 		break;
 	default:
 		assert(0 && "Unhandled event type");
@@ -111,7 +103,7 @@ void FreepieMoveClient::handle_acquire_controller(ClientPSMoveAPI::eClientPSMove
 	else
 	{
 		std::cout << "FreepieMoveClient - failed to acquire controller " << std::endl;
-		m_keepRunning = false;
+		//m_keepRunning = false;
 	}
 }
 
@@ -269,6 +261,38 @@ void FreepieMoveClient::update()
 
 void FreepieMoveClient::shutdown()
 {
+	std::cout << "FreepieMoveClient is shutting down!" << std::endl;
+	
+	free_controller_views();
+
+	// Close all active network connections
+	ClientPSMoveAPI::shutdown();
+}
+
+FreepieMoveClient::~FreepieMoveClient()
+{
+	shutdown();
+}
+
+void FreepieMoveClient::init_controller_views() {
+	// Once created, updates will automatically get pushed into this view
+	for (int i = 0; i < trackedControllerCount; i++)
+	{
+		controller_views[i] = ClientPSMoveAPI::allocate_controller_view(trackedControllerIDs[i]);
+
+		// Kick off request to start streaming data from the first controller
+		start_stream_request_ids[i] =
+			ClientPSMoveAPI::start_controller_data_stream(
+				controller_views[i], (m_sendSensorData ? ClientPSMoveAPI::includePositionData | ClientPSMoveAPI::includeRawSensorData : ClientPSMoveAPI::includePositionData));
+
+		//Set bulb color if specified
+		if ((trackedBulbColors[i] >= 0) && (trackedBulbColors[i] < PSMoveTrackingColorType::MAX_PSMOVE_COLOR_TYPES)) {
+			ClientPSMoveAPI::set_led_tracking_color(controller_views[i], (PSMoveTrackingColorType)trackedBulbColors[i]);
+		}
+	}
+}
+
+void FreepieMoveClient::free_controller_views() {
 	// Free any allocated controller views
 	for (int i = 0; i < trackedControllerCount; i++)
 	{
@@ -278,11 +302,4 @@ void FreepieMoveClient::shutdown()
 			controller_views[i] = nullptr;
 		}
 	}
-	// Close all active network connections
-	ClientPSMoveAPI::shutdown();
-}
-
-FreepieMoveClient::~FreepieMoveClient()
-{
-	shutdown();
 }
