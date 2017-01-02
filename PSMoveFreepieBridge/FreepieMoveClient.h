@@ -34,5 +34,8 @@ private:
 	int32_t* trackedBulbColors;
 	int32_t trackedControllerCount = 1;
 	bool m_sendSensorData = false;
+
+	void init_controller_views();
+	void free_controller_views();
 };
 
