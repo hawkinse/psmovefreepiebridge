@@ -78,17 +78,19 @@ void FreepieMoveClient::handle_client_psmove_event(ClientPSMoveAPI::eEventType e
 		std::cout << "FreepieMoveClient - Disconnected from service" << std::endl;
 		m_keepRunning = false;
 		break;
+	//TODO - don't do fallthrough to handle controller list updates. Dependent on getting newer versions of PSMoveClient to link properly.
 	case ClientPSMoveAPI::opaqueServiceEvent:
 		std::cout << "FreepieMoveClient - Opaque service event(%d)" << static_cast<int>(event_type) << std::endl;
 		std::cout << "This could indicate a change in available controllers. PSMoveFreepieBridge will attempt to reinitialize all controller views." << std::endl;
-		//m_keepRunning = false;
+	case ClientPSMoveAPI::controllerListUpdated:
+		std::cout << "FreepieMoveClient - reinitializing controller views" << std::endl;
 
 		free_controller_views();
 		init_controller_views();
 
 		break;
 	default:
-		assert(0 && "Unhandled event type");
+		std::cout << "FreepieMoveClient - unhandled event(%d)" << static_cast<int>(event_type) << std::endl;
 		break;
 	}
 }
