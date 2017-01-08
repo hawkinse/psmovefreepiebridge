@@ -55,6 +55,10 @@ Bit 7 - Select
 
 # Release Changelog #
 
+### Release 10 ###
+* Add command line argument support.
+* Add example batch file demonstrating command line arguments to track the third controller with default bulb color.
+
 ### Alpha 9 ###
 * Better handling for changes in available controllers. This includes no longer exiting when a controller is added or dropped by PSMoveService, and controllers used for tracking are handled properly when re-added.
 * Console window no longer closes when disconnecting from client if not closed by the user. This will allow the output to be used in diagnosing potential issues.
