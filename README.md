@@ -55,6 +55,9 @@ Bit 7 - Select
 
 # Release Changelog #
 
+### Release 11 ###
+* Add -x command line argument which stops PSMoveFreepieBridge from keeping the window open when finished.
+
 ### Release 10 ###
 * Add command line argument support.
 * Add example batch file demonstrating command line arguments to track the third controller with default bulb color.
