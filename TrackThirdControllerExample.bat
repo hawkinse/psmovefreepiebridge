@@ -4,5 +4,7 @@
 :: for its default color (or previously used color, if set prior). Colors are assigned to the ID in the 
 :: same position on the -t flag.
 
+:: -x flag will close the console window when PSMoveFreepieBridge finishes.
+
 ::The following tracks what is commonly the third controller, with the default color for that controller.
 PSMoveFreepieBridge.exe -t 2 -c -1

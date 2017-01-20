@@ -32,7 +32,7 @@ void prompt_arguments(int32_t &controllerCount, int32_t* controllerIDs, int32_t*
 	}
 }
 
-bool parse_arguments(int argc, char** argv, int32_t &controllerCount, int32_t* controllerIDs, int32_t* bulbColors) {
+bool parse_arguments(int argc, char** argv, int32_t &controllerCount, int32_t* controllerIDs, int32_t* bulbColors, bool &bExitWithPSMoveService) {
 	bool bSuccess = true;
 
 	int index = 1;
@@ -73,6 +73,11 @@ bool parse_arguments(int argc, char** argv, int32_t &controllerCount, int32_t* c
 				index++;
 			}
 		}
+		else if (strcmp(argv[index], "-x") == 0) {
+			std::cout << "-x flag specified. Will not keep window open when finished" << std::endl;
+			bExitWithPSMoveService = true;
+			index++;
+		}
 		else {
 			std::cout << "Unrecognized command line argument " << argv[index] << std::endl;
 			bSuccess = false;
@@ -90,12 +95,13 @@ int main(int argc, char** argv)
 	int32_t freepieIndicies[4] = { 0, 1, 2, 3 };
 	int32_t bulbColors[4] = { -1, -1, -1, -1 };
 	bool bRun = true;
+	bool bExitWithPSMoveService = false;
 
 	if (argc == 1) {
 		prompt_arguments(controllerCount, controllerIDs, bulbColors);
 	}
 	else {
-		if (!parse_arguments(argc, argv, controllerCount, controllerIDs, bulbColors)) {
+		if (!parse_arguments(argc, argv, controllerCount, controllerIDs, bulbColors, bExitWithPSMoveService)) {
 			std::cout << "Command line arguments are not valid." << std::endl;
 			bRun = false;;
 		}
@@ -107,8 +113,10 @@ int main(int argc, char** argv)
 	}
 
 	std::cout << "PSMoveFreepieBridge has ended" << std::endl;
-	
-	std::cin.ignore(INT_MAX);
+
+	if (!bExitWithPSMoveService) {
+		std::cin.ignore(INT_MAX);
+	}
 
 	return 0;
 }
