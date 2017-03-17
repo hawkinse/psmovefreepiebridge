@@ -1,17 +1,17 @@
 #include "stdafx.h"
 #include "FreepieMoveClient.h"
 
-void prompt_arguments(int32_t &controllerCount, int32_t* controllerIDs, int32_t* bulbColors) {
+void prompt_arguments(int32_t &controllerCount, PSMControllerID* controllerIDs, PSMTrackingColorType* bulbColors) {
 	std::cout << "How many controllers do you want to track (1-4)? Note that more than 1 disables raw sensor data access and 4 disables button access: ";
 	std::cin >> controllerCount;
 
 	for (int i = 0; i < controllerCount; i++)
 	{
-		int32_t controllerID = 0;
+		PSMControllerID controllerID = 0;
 		std::cout << "Enter the ID of the controller you wish to use: ";
 		std::cin >> controllerID;
 
-		int32_t bulbColor = -1;
+		PSMTrackingColorType bulbColor = PSMTrackingColorType_MaxColorTypes;
 		char customColorChoice;
 		std::cout << "Do you want to use a custom bulb color for this controller (y/n)? ";
 		std::cin >> customColorChoice;
@@ -24,7 +24,13 @@ void prompt_arguments(int32_t &controllerCount, int32_t* controllerIDs, int32_t*
 			std::cout << "  4 - Green\n";
 			std::cout << "  5 - Blue\n";
 			std::cout << "Enter the number of the desired color from the above list: ";
-			std::cin >> bulbColor;
+
+			int32_t intBulbColor;
+			std::cin >> intBulbColor;
+			if (intBulbColor >= 0 && intBulbColor < PSMTrackingColorType_MaxColorTypes)
+			{
+				bulbColor= static_cast<PSMTrackingColorType>(intBulbColor);
+			}
 		}
 
 		controllerIDs[i] = controllerID;
@@ -32,7 +38,7 @@ void prompt_arguments(int32_t &controllerCount, int32_t* controllerIDs, int32_t*
 	}
 }
 
-bool parse_arguments(int argc, char** argv, int32_t &controllerCount, int32_t* controllerIDs, int32_t* bulbColors, bool &bExitWithPSMoveService) {
+bool parse_arguments(int argc, char** argv, int32_t &controllerCount, PSMControllerID* controllerIDs, PSMTrackingColorType* bulbColors, bool &bExitWithPSMoveService) {
 	bool bSuccess = true;
 
 	int index = 1;
@@ -44,7 +50,7 @@ bool parse_arguments(int argc, char** argv, int32_t &controllerCount, int32_t* c
 			while ((index < argc) && isdigit(*argv[index])) {
 				//Only add up to four controllers
 				if (controllerCount < 4) {
-					controllerIDs[controllerCount] = atoi(argv[index]);
+					controllerIDs[controllerCount] = static_cast<PSMControllerID>(atoi(argv[index]));
 					controllerCount++;
 				}
 				else {
@@ -62,7 +68,15 @@ bool parse_arguments(int argc, char** argv, int32_t &controllerCount, int32_t* c
 			while ((index < argc) && (isdigit(*argv[index]) || (strcmp(argv[index], "-1") == 0))) {
 				//Only add up to four controller indicies
 				if (colorIndex < 4) {
-					bulbColors[colorIndex] = atoi(argv[index]);
+					int32_t intBulbColor= atoi(argv[index]);
+					if (intBulbColor >= 0 && intBulbColor < PSMTrackingColorType_MaxColorTypes)
+					{
+						bulbColors[colorIndex]= static_cast<PSMTrackingColorType>(intBulbColor);
+					}
+					else
+					{
+						bulbColors[colorIndex]= PSMTrackingColorType_MaxColorTypes;
+					}
 					colorIndex++;
 				}
 				else {
@@ -91,9 +105,9 @@ bool parse_arguments(int argc, char** argv, int32_t &controllerCount, int32_t* c
 int main(int argc, char** argv)
 {
 	int32_t controllerCount = 0;
-	int32_t controllerIDs[4];
+	PSMControllerID controllerIDs[4];
 	int32_t freepieIndicies[4] = { 0, 1, 2, 3 };
-	int32_t bulbColors[4] = { -1, -1, -1, -1 };
+	PSMTrackingColorType bulbColors[4] = { PSMTrackingColorType_MaxColorTypes, PSMTrackingColorType_MaxColorTypes, PSMTrackingColorType_MaxColorTypes, PSMTrackingColorType_MaxColorTypes };
 	bool bRun = true;
 	bool bExitWithPSMoveService = false;
 
