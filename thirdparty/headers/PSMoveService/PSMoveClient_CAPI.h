@@ -20,6 +20,8 @@ typedef int PSMHmdID;
 // Shared Constants
 //-----------------
 
+const PSMRequestID PSM_INVALID_REQUEST_ID = -1;
+
 enum _PSMResult
 {
     PSMResult_Error                 = -1,
@@ -170,7 +172,6 @@ typedef struct _PSMPSMove
     bool                         bIsOrientationValid;
     bool                         bIsPositionValid;
     bool                         bHasUnpublishedState;
-    bool                         bPoseResetButtonEnabled;
     
     char                         DevicePath[256];
     char                         DeviceSerial[128];
@@ -198,6 +199,10 @@ typedef struct _PSMPSMove
     unsigned char                TriggerValue;
     unsigned char                Rumble;
     unsigned char                LED_r, LED_g, LED_b;
+
+    long long                    ResetPoseButtonPressTime;
+    bool                         bResetPoseRequestSent;
+    bool                         bPoseResetButtonEnabled;
     
 } PSMPSMove;
 
@@ -241,7 +246,6 @@ typedef struct _PSMDualShock4
     bool                         bIsOrientationValid;
     bool                         bIsPositionValid;
     bool                         bHasUnpublishedState;
-    bool                         bPoseResetButtonEnabled;
     
     char                         DevicePath[256];
     char                         DeviceSerial[128];
@@ -283,11 +287,15 @@ typedef struct _PSMDualShock4
     float                        LeftAnalogY;
     float                        RightAnalogX;
     float                        RightAnalogY;
-    unsigned char                LeftTriggerValue;
-    unsigned char                RightTriggerValue;
+    float                        LeftTriggerValue;
+    float                        RightTriggerValue;
 
     unsigned char                BigRumble, SmallRumble;
     unsigned char                LED_r, LED_g, LED_b;
+
+    long long                    ResetPoseButtonPressTime;
+    bool                         bResetPoseRequestSent;
+    bool                         bPoseResetButtonEnabled;
     
 } PSMDualShock4;
 
@@ -420,7 +428,8 @@ typedef struct _PSMEventMessage
         PSMEvent_opaqueServiceEvent, // Need to have protocol access to see what kind of event this is
         PSMEvent_controllerListUpdated,
         PSMEvent_trackerListUpdated,
-		PSMEvent_hmdListUpdated,
+        PSMEvent_hmdListUpdated,
+        PSMEvent_systemButtonPressed
     } event_type;
 
     // Opaque handle that can be converted to a <const PSMoveProtocol::Response *> pointer
@@ -548,6 +557,7 @@ PSM_PUBLIC_FUNCTION(bool) PSM_HasConnectionStatusChanged();
 PSM_PUBLIC_FUNCTION(bool) PSM_HasControllerListChanged();
 PSM_PUBLIC_FUNCTION(bool) PSM_HasTrackerListChanged();
 PSM_PUBLIC_FUNCTION(bool) PSM_HasHMDListChanged();
+PSM_PUBLIC_FUNCTION(bool) PSM_WasSystemButtonPressed();
 
 /// System Blocking Queries
 PSM_PUBLIC_FUNCTION(PSMResult) PSM_GetServiceVersionString(char *out_version_string, size_t max_version_string, int timeout_ms);

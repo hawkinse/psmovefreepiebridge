@@ -66,9 +66,7 @@ void FreepieMoveClient::handle_client_psmove_event(PSMEventMessage::eEventType e
 	{
 	case PSMEventMessage::PSMEvent_connectedToService:
 		std::cout << "FreepieMoveClient - Connected to service" << std::endl;
-
 		init_controller_views();
-
 		break;
 	case PSMEventMessage::PSMEvent_failedToConnectToService:
 		std::cout << "FreepieMoveClient - Failed to connect to service" << std::endl;
@@ -78,17 +76,23 @@ void FreepieMoveClient::handle_client_psmove_event(PSMEventMessage::eEventType e
 		std::cout << "FreepieMoveClient - Disconnected from service" << std::endl;
 		m_keepRunning = false;
 		break;
-	//TODO - don't do fallthrough to handle controller list updates. Dependent on getting newer versions of PSMoveClient to link properly.
-	case PSMEventMessage::PSMEvent_opaqueServiceEvent:
-		std::cout << "FreepieMoveClient - Opaque service event(%d)" << static_cast<int>(event_type) << std::endl;
-		std::cout << "This could indicate a change in available controllers. PSMoveFreepieBridge will attempt to reinitialize all controller views." << std::endl;
+    case PSMEventMessage::PSMEvent_opaqueServiceEvent:
+		std::cout << "FreepieMoveClient - Opaque service event(%d). Ignored." << static_cast<int>(event_type) << std::endl;
+        break;
 	case PSMEventMessage::PSMEvent_controllerListUpdated:
-		std::cout << "FreepieMoveClient - reinitializing controller views" << std::endl;
-
+		std::cout << "FreepieMoveClient - Controller list updated. Reinitializing controller views." << std::endl;
 		free_controller_views();
 		init_controller_views();
-
 		break;
+	case PSMEventMessage::PSMEvent_trackerListUpdated:
+        std::cout << "FreepieMoveClient - Tracker list updated. Ignored." << std::endl;
+        break;
+	case PSMEventMessage::PSMEvent_hmdListUpdated:
+        std::cout << "FreepieMoveClient - HMD list updated. Ignored." << std::endl;
+        break;
+	case PSMEventMessage::PSMEvent_systemButtonPressed:
+        std::cout << "FreepieMoveClient - System button pressed. Ignored." << std::endl;
+        break;
 	default:
 		std::cout << "FreepieMoveClient - unhandled event(%d)" << static_cast<int>(event_type) << std::endl;
 		break;
@@ -116,7 +120,7 @@ bool FreepieMoveClient::startup()
 	// Attempt to connect to the server
 	if (success)
 	{
-		if (PSM_InitializeAsync("localhost", "9512") != PSMResult_Success)
+		if (PSM_InitializeAsync("localhost", "9512") == PSMResult_Error)
 		{
 			std::cout << "FreepieMoveClient - Failed to initialize the client network manager" << std::endl;
 			success = false;
@@ -140,7 +144,7 @@ void FreepieMoveClient::update()
 
 	// Poll events queued up by the call to PSM_UpdateNoPollMessages()
 	PSMMessage message;
-	while (PSM_PollNextMessage(&message, sizeof(message)))
+	while (PSM_PollNextMessage(&message, sizeof(message)) == PSMResult_Success)
 	{
 		switch (message.payload_type)
 		{
@@ -162,7 +166,14 @@ void FreepieMoveClient::update()
 	}
 
 	//Button data must be outside of loop because it contains data for all tracked controllers!
-	freepie_io_6dof_data buttonData;
+    freepie_io_6dof_data buttonData;
+
+    buttonData.pitch= 0.f;
+    buttonData.roll= 0.f;
+    buttonData.yaw= 0.f;
+    buttonData.x= 0.f;
+    buttonData.y= 0.f;
+    buttonData.z= 0.f;
 
 	for (int i = 0; i < trackedControllerCount; i++)
 	{
@@ -291,7 +302,9 @@ void FreepieMoveClient::init_controller_views() {
 
 		//Set bulb color if specified
 		if ((trackedBulbColors[i] >= 0) && (trackedBulbColors[i] < PSMTrackingColorType_MaxColorTypes)) {
-			PSM_SetControllerLEDColorAsync(controller_views[i]->ControllerID, trackedBulbColors[i], nullptr);
+            PSMRequestID request_id;
+			PSM_SetControllerLEDColorAsync(controller_views[i]->ControllerID, trackedBulbColors[i], &request_id);
+            PSM_EatResponse(request_id);
 		}
 	}
 }
@@ -300,8 +313,14 @@ void FreepieMoveClient::free_controller_views() {
 	// Free any allocated controller views
 	for (int i = 0; i < trackedControllerCount; i++)
 	{
-		if (controller_views[i])
+		if (controller_views[i] != nullptr)
 		{
+            // Stop the controller stream
+            PSMRequestID request_id;
+            PSM_StopControllerDataStreamAsync(controller_views[i]->ControllerID, &request_id);
+            PSM_EatResponse(request_id);
+
+            // Free out controller listener
 			PSM_FreeControllerListener(controller_views[i]->ControllerID);
 			controller_views[i] = nullptr;
 		}
