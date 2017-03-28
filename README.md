@@ -55,6 +55,9 @@ Bit 7 - Select
 
 # Release Changelog #
 
+### Release 12 ###
+* Migrate to the new C API used by PSMoveService.
+
 ### Release 11 ###
 * Add -x command line argument which stops PSMoveFreepieBridge from keeping the window open when finished.
 
