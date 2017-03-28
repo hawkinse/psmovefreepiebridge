@@ -93,10 +93,10 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)\thirdparty\lib\x86\debug;$(TargetDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>freepie_io.lib;PSMoveClient.lib;FreepieWriterBridge.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>freepie_io.lib;PSMoveClient_CAPI.lib;FreepieWriterBridge.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>Copy /Y "$(SolutionDir)thirdparty\lib\x86\debug\PSMoveClient.dll" "$(TargetDir)"</Command>
+      <Command>Copy /Y "$(SolutionDir)thirdparty\lib\x86\debug\PSMoveClient_CAPI.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -111,10 +111,10 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)\thirdparty\lib\x64\debug;$(TargetDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>freepie_io.lib;PSMoveClient.lib;FreepieWriterBridge.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>freepie_io.lib;PSMoveClient_CAPI.lib;FreepieWriterBridge.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>Copy /Y "$(SolutionDir)thirdparty\lib\x64\debug\PSMoveClient.dll" "$(TargetDir)"</Command>
+      <Command>Copy /Y "$(SolutionDir)thirdparty\lib\x64\debug\PSMoveClient_CAPI.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -133,10 +133,10 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)\thirdparty\lib\x86\release;$(TargetDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>freepie_io.lib;PSMoveClient.lib;FreepieWriterBridge.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>freepie_io.lib;PSMoveClient_CAPI.lib;FreepieWriterBridge.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>Copy /Y "$(SolutionDir)thirdparty\lib\x86\release\PSMoveClient.dll" "$(TargetDir)"</Command>
+      <Command>Copy /Y "$(SolutionDir)thirdparty\lib\x86\release\PSMoveClient_CAPI.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -155,10 +155,10 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)\thirdparty\lib\x64\release;$(TargetDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>freepie_io.lib;PSMoveClient.lib;FreepieWriterBridge.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>freepie_io.lib;PSMoveClient_CAPI.lib;FreepieWriterBridge.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>Copy /Y "$(SolutionDir)thirdparty\lib\x64\release\PSMoveClient.dll" "$(TargetDir)"</Command>
+      <Command>Copy /Y "$(SolutionDir)thirdparty\lib\x64\release\PSMoveClient_CAPI.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

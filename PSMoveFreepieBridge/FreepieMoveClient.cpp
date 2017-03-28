@@ -17,7 +17,7 @@ FreepieMoveClient::FreepieMoveClient()
 {
 }
 
-int FreepieMoveClient::run(int32_t controllerCount, int32_t controllerIDs[], int32_t bulbColors[], int32_t freepieIndicies[], bool sendSensorData)
+int FreepieMoveClient::run(int32_t controllerCount, PSMControllerID controllerIDs[], PSMTrackingColorType bulbColors[], int32_t freepieIndicies[], bool sendSensorData)
 {
 	// Attempt to start and run the client
 	try
@@ -60,47 +60,51 @@ int FreepieMoveClient::run(int32_t controllerCount, int32_t controllerIDs[], int
 	return 0;
 }
 
-void FreepieMoveClient::handle_client_psmove_event(ClientPSMoveAPI::eEventType event_type)
+void FreepieMoveClient::handle_client_psmove_event(PSMEventMessage::eEventType event_type)
 {
 	switch (event_type)
 	{
-	case ClientPSMoveAPI::connectedToService:
+	case PSMEventMessage::PSMEvent_connectedToService:
 		std::cout << "FreepieMoveClient - Connected to service" << std::endl;
-
 		init_controller_views();
-
 		break;
-	case ClientPSMoveAPI::failedToConnectToService:
+	case PSMEventMessage::PSMEvent_failedToConnectToService:
 		std::cout << "FreepieMoveClient - Failed to connect to service" << std::endl;
 		m_keepRunning = false;
 		break;
-	case ClientPSMoveAPI::disconnectedFromService:
+	case PSMEventMessage::PSMEvent_disconnectedFromService:
 		std::cout << "FreepieMoveClient - Disconnected from service" << std::endl;
 		m_keepRunning = false;
 		break;
-	//TODO - don't do fallthrough to handle controller list updates. Dependent on getting newer versions of PSMoveClient to link properly.
-	case ClientPSMoveAPI::opaqueServiceEvent:
-		std::cout << "FreepieMoveClient - Opaque service event(%d)" << static_cast<int>(event_type) << std::endl;
-		std::cout << "This could indicate a change in available controllers. PSMoveFreepieBridge will attempt to reinitialize all controller views." << std::endl;
-	case ClientPSMoveAPI::controllerListUpdated:
-		std::cout << "FreepieMoveClient - reinitializing controller views" << std::endl;
-
+    case PSMEventMessage::PSMEvent_opaqueServiceEvent:
+		std::cout << "FreepieMoveClient - Opaque service event(%d). Ignored." << static_cast<int>(event_type) << std::endl;
+        break;
+	case PSMEventMessage::PSMEvent_controllerListUpdated:
+		std::cout << "FreepieMoveClient - Controller list updated. Reinitializing controller views." << std::endl;
 		free_controller_views();
 		init_controller_views();
-
 		break;
+	case PSMEventMessage::PSMEvent_trackerListUpdated:
+        std::cout << "FreepieMoveClient - Tracker list updated. Ignored." << std::endl;
+        break;
+	case PSMEventMessage::PSMEvent_hmdListUpdated:
+        std::cout << "FreepieMoveClient - HMD list updated. Ignored." << std::endl;
+        break;
+	case PSMEventMessage::PSMEvent_systemButtonPressed:
+        std::cout << "FreepieMoveClient - System button pressed. Ignored." << std::endl;
+        break;
 	default:
 		std::cout << "FreepieMoveClient - unhandled event(%d)" << static_cast<int>(event_type) << std::endl;
 		break;
 	}
 }
 
-void FreepieMoveClient::handle_acquire_controller(ClientPSMoveAPI::eClientPSMoveResultCode resultCode, int32_t trackedControllerIndex)
+void FreepieMoveClient::handle_acquire_controller(PSMResult resultCode, PSMControllerID trackedControllerIndex)
 {
-	if (resultCode == ClientPSMoveAPI::_clientPSMoveResultCode_ok)
+	if (resultCode == PSMResult_Success)
 	{
 		std::cout << "FreepieMoveClient - Acquired controller "
-			<< controller_views[trackedControllerIndex]->GetControllerID() << std::endl;
+			<< controller_views[trackedControllerIndex]->ControllerID << std::endl;
 	}
 	else
 	{
@@ -116,7 +120,7 @@ bool FreepieMoveClient::startup()
 	// Attempt to connect to the server
 	if (success)
 	{
-		if (!ClientPSMoveAPI::startup("localhost", "9512"))
+		if (PSM_InitializeAsync("localhost", "9512") == PSMResult_Error)
 		{
 			std::cout << "FreepieMoveClient - Failed to initialize the client network manager" << std::endl;
 			success = false;
@@ -136,15 +140,15 @@ bool FreepieMoveClient::startup()
 void FreepieMoveClient::update()
 {
 	// Process incoming/outgoing networking requests
-	ClientPSMoveAPI::update();
+	PSM_UpdateNoPollMessages();
 
-	// Poll events queued up by the call to ClientPSMoveAPI::update()
-	ClientPSMoveAPI::Message message;
-	while (ClientPSMoveAPI::poll_next_message(&message, sizeof(message)))
+	// Poll events queued up by the call to PSM_UpdateNoPollMessages()
+	PSMMessage message;
+	while (PSM_PollNextMessage(&message, sizeof(message)) == PSMResult_Success)
 	{
 		switch (message.payload_type)
 		{
-		case ClientPSMoveAPI::_messagePayloadType_Response:
+		case PSMMessage::_messagePayloadType_Response:
 			for (int i = 0; i < trackedControllerCount; i++)
 			{
 				if (start_stream_request_ids[i] != -1 &&
@@ -155,29 +159,36 @@ void FreepieMoveClient::update()
 				}
 			}
 			break;
-		case ClientPSMoveAPI::_messagePayloadType_Event:
+		case PSMMessage::_messagePayloadType_Event:
 			handle_client_psmove_event(message.event_data.event_type);
 			break;
 		}
 	}
 
 	//Button data must be outside of loop because it contains data for all tracked controllers!
-	freepie_io_6dof_data buttonData;
+    freepie_io_6dof_data buttonData;
+
+    buttonData.pitch= 0.f;
+    buttonData.roll= 0.f;
+    buttonData.yaw= 0.f;
+    buttonData.x= 0.f;
+    buttonData.y= 0.f;
+    buttonData.z= 0.f;
 
 	for (int i = 0; i < trackedControllerCount; i++)
 	{
-		if (controller_views[i] && controller_views[i]->IsValid() && controller_views[i]->GetControllerViewType() == ClientControllerView::PSMove)
+		if (controller_views[i] && controller_views[i]->bValid && controller_views[i]->ControllerType == PSMController_Move)
 		{
 			std::chrono::milliseconds now =
 				std::chrono::duration_cast<std::chrono::milliseconds>(
 					std::chrono::system_clock::now().time_since_epoch());
 			std::chrono::milliseconds diff = now - last_report_fps_timestamp;
 
-			ClientPSMoveView moveView = controller_views[i]->GetPSMoveView();
-			PSMovePose controllerPose = moveView.GetPose();
+			PSMPSMove moveView = controller_views[i]->ControllerState.PSMoveState;
+			PSMPosef controllerPose = moveView.Pose;
 
 			freepie_io_6dof_data poseData;
-			PSMoveQuaternion normalizedQuat = controllerPose.Orientation.normalize_with_default(*k_psmove_quaternion_identity);
+			PSMQuatf normalizedQuat = PSM_QuatfNormalizeWithDefault(&controllerPose.Orientation, k_psm_quaternion_identity);
 			//glm::quat glmOrientation = glm::quat(normalizedQuat.w, normalizedQuat.x, normalizedQuat.y, normalizedQuat.z);
 
 			poseData.x = controllerPose.Position.x;
@@ -198,23 +209,23 @@ void FreepieMoveClient::update()
 
 			if (m_sendSensorData)
 			{
-				PSMoveRawSensorData sensors = moveView.GetRawSensorData();
+				PSMPSMoveCalibratedSensorData sensors = moveView.CalibratedSensorData;
 
 				//Send sensor data through pos/rot struct
 				freepie_io_6dof_data sensorData1;
-				sensorData1.x = sensors.Accelerometer.i;
-				sensorData1.y = sensors.Accelerometer.j;
-				sensorData1.z = sensors.Accelerometer.k;
+				sensorData1.x = sensors.Accelerometer.x;
+				sensorData1.y = sensors.Accelerometer.y;
+				sensorData1.z = sensors.Accelerometer.z;
 
-				sensorData1.pitch = sensors.Gyroscope.i;
-				sensorData1.roll = sensors.Gyroscope.j;
-				sensorData1.yaw = sensors.Gyroscope.k;
+				sensorData1.pitch = sensors.Gyroscope.x;
+				sensorData1.roll = sensors.Gyroscope.y;
+				sensorData1.yaw = sensors.Gyroscope.z;
 				WriteToFreepie(sensorData1, 1);
 
 				freepie_io_6dof_data sensorData2;
-				sensorData2.x = (float)sensors.Magnetometer.i;
-				sensorData2.y = (float)sensors.Magnetometer.j;
-				sensorData2.z = (float)sensors.Magnetometer.k;
+				sensorData2.x = sensors.Magnetometer.x;
+				sensorData2.y = sensors.Magnetometer.y;
+				sensorData2.z = sensors.Magnetometer.z;
 
 				WriteToFreepie(sensorData2, 2);
 			}
@@ -222,17 +233,17 @@ void FreepieMoveClient::update()
 			// If we have less than four controllers, also include button data
 			if (trackedControllerCount < 4)
 			{
-				float triggerState = moveView.GetTriggerValue();
+				float triggerState = static_cast<float>(moveView.TriggerValue) / 255.f;
 				uint8_t buttonsPressed = 0;
 
-				buttonsPressed |= (moveView.GetButtonSquare() == PSMoveButtonState::PSMoveButton_DOWN);
-				buttonsPressed |= ((moveView.GetButtonTriangle() == PSMoveButtonState::PSMoveButton_DOWN) << 1);
-				buttonsPressed |= ((moveView.GetButtonCross() == PSMoveButtonState::PSMoveButton_DOWN) << 2);
-				buttonsPressed |= ((moveView.GetButtonCircle() == PSMoveButtonState::PSMoveButton_DOWN) << 3);
-				buttonsPressed |= ((moveView.GetButtonMove() == PSMoveButtonState::PSMoveButton_DOWN) << 4);
-				buttonsPressed |= ((moveView.GetButtonPS() == PSMoveButtonState::PSMoveButton_DOWN) << 5);
-				buttonsPressed |= ((moveView.GetButtonStart() == PSMoveButtonState::PSMoveButton_DOWN) << 6);
-				buttonsPressed |= ((moveView.GetButtonSelect() == PSMoveButtonState::PSMoveButton_DOWN) << 7);
+				buttonsPressed |= (moveView.SquareButton == PSMButtonState_DOWN);
+				buttonsPressed |= ((moveView.TriangleButton == PSMButtonState_DOWN) << 1);
+				buttonsPressed |= ((moveView.CrossButton == PSMButtonState_DOWN) << 2);
+				buttonsPressed |= ((moveView.CircleButton == PSMButtonState_DOWN) << 3);
+				buttonsPressed |= ((moveView.MoveButton == PSMButtonState_DOWN) << 4);
+				buttonsPressed |= ((moveView.PSButton == PSMButtonState_DOWN) << 5);
+				buttonsPressed |= ((moveView.StartButton == PSMButtonState_DOWN) << 6);
+				buttonsPressed |= ((moveView.SelectButton == PSMButtonState_DOWN) << 7);
 
 				switch (i)
 				{
@@ -268,7 +279,7 @@ void FreepieMoveClient::shutdown()
 	free_controller_views();
 
 	// Close all active network connections
-	ClientPSMoveAPI::shutdown();
+	PSM_Shutdown();
 }
 
 FreepieMoveClient::~FreepieMoveClient()
@@ -280,16 +291,20 @@ void FreepieMoveClient::init_controller_views() {
 	// Once created, updates will automatically get pushed into this view
 	for (int i = 0; i < trackedControllerCount; i++)
 	{
-		controller_views[i] = ClientPSMoveAPI::allocate_controller_view(trackedControllerIDs[i]);
+		PSM_AllocateControllerListener(trackedControllerIDs[i]);
+		controller_views[i] = PSM_GetController(trackedControllerIDs[i]);
 
 		// Kick off request to start streaming data from the first controller
-		start_stream_request_ids[i] =
-			ClientPSMoveAPI::start_controller_data_stream(
-				controller_views[i], (m_sendSensorData ? ClientPSMoveAPI::includePositionData | ClientPSMoveAPI::includeRawSensorData : ClientPSMoveAPI::includePositionData));
+		PSM_StartControllerDataStreamAsync(
+			controller_views[i]->ControllerID, 
+			m_sendSensorData ? PSMStreamFlags_includePositionData | PSMStreamFlags_includeCalibratedSensorData : PSMStreamFlags_includePositionData,
+			&start_stream_request_ids[i]);
 
 		//Set bulb color if specified
-		if ((trackedBulbColors[i] >= 0) && (trackedBulbColors[i] < PSMoveTrackingColorType::MAX_PSMOVE_COLOR_TYPES)) {
-			ClientPSMoveAPI::set_led_tracking_color(controller_views[i], (PSMoveTrackingColorType)trackedBulbColors[i]);
+		if ((trackedBulbColors[i] >= 0) && (trackedBulbColors[i] < PSMTrackingColorType_MaxColorTypes)) {
+            PSMRequestID request_id;
+			PSM_SetControllerLEDColorAsync(controller_views[i]->ControllerID, trackedBulbColors[i], &request_id);
+            PSM_EatResponse(request_id);
 		}
 	}
 }
@@ -298,9 +313,15 @@ void FreepieMoveClient::free_controller_views() {
 	// Free any allocated controller views
 	for (int i = 0; i < trackedControllerCount; i++)
 	{
-		if (controller_views[i])
+		if (controller_views[i] != nullptr)
 		{
-			ClientPSMoveAPI::free_controller_view(controller_views[i]);
+            // Stop the controller stream
+            PSMRequestID request_id;
+            PSM_StopControllerDataStreamAsync(controller_views[i]->ControllerID, &request_id);
+            PSM_EatResponse(request_id);
+
+            // Free out controller listener
+			PSM_FreeControllerListener(controller_views[i]->ControllerID);
 			controller_views[i] = nullptr;
 		}
 	}
