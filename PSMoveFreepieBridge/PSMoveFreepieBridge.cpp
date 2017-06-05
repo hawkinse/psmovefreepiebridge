@@ -1,57 +1,83 @@
 #include "stdafx.h"
 #include "FreepieMoveClient.h"
 
-void prompt_arguments(int32_t &controllerCount, PSMControllerID* controllerIDs, PSMTrackingColorType* bulbColors) {
-	std::cout << "How many controllers do you want to track (1-4)? Note that more than 1 disables raw sensor data access and 4 disables button access: ";
-	std::cin >> controllerCount;
+void prompt_arguments(eDeviceType &deviceType, int32_t &deviceCount, int* deviceIDs, PSMTrackingColorType* bulbColors) {
+	int rawDeviceType= 0;
+	std::cout << "1) HMD " << std::endl;
+	std::cout << "2) Controllers " << std::endl;
+	std::cout << "Which device type do you want to track: ";
+	std::cin >> rawDeviceType;
 
-	for (int i = 0; i < controllerCount; i++)
+	if (rawDeviceType == (int)_deviceTypeHMD)
 	{
-		PSMControllerID controllerID = 0;
-		std::cout << "Enter the ID of the controller you wish to use: ";
-		std::cin >> controllerID;
+		deviceType= _deviceTypeHMD;
+		deviceCount= 1;
+	}
+	else
+	{
+		deviceType= _deviceTypeController;
+
+		std::cout << "How many controllers do you want to track (1-4)? Note that more than 1 disables raw sensor data access and 4 disables button access: ";
+		std::cin >> deviceCount;
+	}
+
+	for (int i = 0; i < deviceCount; i++)
+	{
+		int deviceID = 0;
+		std::cout << "Enter the ID of the device you wish to use: ";
+		std::cin >> deviceID;
 
 		PSMTrackingColorType bulbColor = PSMTrackingColorType_MaxColorTypes;
-		char customColorChoice;
-		std::cout << "Do you want to use a custom bulb color for this controller (y/n)? ";
-		std::cin >> customColorChoice;
-		if (customColorChoice == 'Y' || customColorChoice == 'y') {
-			std::cout << "Color Options:\n";
-			std::cout << "  0 - Magenta\n";
-			std::cout << "  1 - Cyan\n";
-			std::cout << "  2 - Yellow\n";
-			std::cout << "  3 - Red\n";
-			std::cout << "  4 - Green\n";
-			std::cout << "  5 - Blue\n";
-			std::cout << "Enter the number of the desired color from the above list: ";
 
-			int32_t intBulbColor;
-			std::cin >> intBulbColor;
-			if (intBulbColor >= 0 && intBulbColor < PSMTrackingColorType_MaxColorTypes)
-			{
-				bulbColor= static_cast<PSMTrackingColorType>(intBulbColor);
+		if (deviceType == _deviceTypeController)
+		{
+			char customColorChoice;
+		std::cout << "Do you want to use a custom bulb color for this controller (y/n)? ";
+			std::cin >> customColorChoice;
+			if (customColorChoice == 'Y' || customColorChoice == 'y') {
+				std::cout << "Color Options:\n";
+				std::cout << "  0 - Magenta\n";
+				std::cout << "  1 - Cyan\n";
+				std::cout << "  2 - Yellow\n";
+				std::cout << "  3 - Red\n";
+				std::cout << "  4 - Green\n";
+				std::cout << "  5 - Blue\n";
+				std::cout << "Enter the number of the desired color from the above list: ";
+
+				int32_t intBulbColor;
+				std::cin >> intBulbColor;
+				if (intBulbColor >= 0 && intBulbColor < PSMTrackingColorType_MaxColorTypes)
+				{
+					bulbColor= static_cast<PSMTrackingColorType>(intBulbColor);
+				}
 			}
 		}
 
-		controllerIDs[i] = controllerID;
+		deviceIDs[i] = deviceID;
 		bulbColors[i] = bulbColor;
 	}
 }
 
-bool parse_arguments(int argc, char** argv, int32_t &controllerCount, PSMControllerID* controllerIDs, PSMTrackingColorType* bulbColors, bool &bExitWithPSMoveService) {
+bool parse_arguments(int argc, char** argv, eDeviceType deviceType, int32_t &deviceCount, PSMControllerID* deviceIDs, PSMTrackingColorType* bulbColors, bool &bExitWithPSMoveService) {
 	bool bSuccess = true;
 
 	int index = 1;
 	while (index < argc) {
-		if ((strcmp(argv[index], "-t") == 0) && controllerCount < 1) {
+		if ((strcmp(argv[index], "-controllers") == 0) && deviceCount < 1) {
+			deviceType= _deviceTypeController;
+		}
+		else if ((strcmp(argv[index], "-hmd") == 0) && deviceCount < 1) {
+			deviceType= _deviceTypeHMD;
+		}
+		else if ((strcmp(argv[index], "-t") == 0) && deviceCount < 1) {
 			index++;
 
-			//All numeric values after the -t flag are controller IDs. Loop through and add them.
+			//All numeric values after the -t flag are device IDs. Loop through and add them.
 			while ((index < argc) && isdigit(*argv[index])) {
 				//Only add up to four controllers
-				if (controllerCount < 4) {
-					controllerIDs[controllerCount] = static_cast<PSMControllerID>(atoi(argv[index]));
-					controllerCount++;
+				if (deviceCount < 4) {
+					deviceIDs[deviceCount] = static_cast<PSMControllerID>(atoi(argv[index]));
+					deviceCount++;
 				}
 				else {
 					std::cout << "More than four controllers have been specified on the command line!" << std::endl;
@@ -99,23 +125,41 @@ bool parse_arguments(int argc, char** argv, int32_t &controllerCount, PSMControl
 		}
 	}
 
+    if (deviceType == _deviceTypeHMD)
+    {
+        if (deviceCount > 1)
+        {
+            std::cout << "Only one device supported when using HMD!" << std::endl;
+            std::cout << "Setting device count to 1" << std::endl;
+            deviceCount= 1;
+        }
+
+        if (bulbColors[0] != PSMTrackingColorType_MaxColorTypes)
+        {
+            std::cout << "Custom color not supported when using HMD!" << std::endl;
+            std::cout << "Setting custom color to default." << std::endl;
+            bulbColors[0]= PSMTrackingColorType_MaxColorTypes;
+        }
+    }
+
 	return bSuccess;
 }
 
 int main(int argc, char** argv)
 {
-	int32_t controllerCount = 0;
-	PSMControllerID controllerIDs[4];
+	eDeviceType deviceType= _deviceTypeController;
+	int32_t deviceCount = 0;
+	int deviceIDs[4];
 	int32_t freepieIndicies[4] = { 0, 1, 2, 3 };
 	PSMTrackingColorType bulbColors[4] = { PSMTrackingColorType_MaxColorTypes, PSMTrackingColorType_MaxColorTypes, PSMTrackingColorType_MaxColorTypes, PSMTrackingColorType_MaxColorTypes };
 	bool bRun = true;
 	bool bExitWithPSMoveService = false;
 
 	if (argc == 1) {
-		prompt_arguments(controllerCount, controllerIDs, bulbColors);
+		prompt_arguments(deviceType, deviceCount, deviceIDs, bulbColors);
 	}
 	else {
-		if (!parse_arguments(argc, argv, controllerCount, controllerIDs, bulbColors, bExitWithPSMoveService)) {
+		if (!parse_arguments(argc, argv, deviceType, deviceCount, deviceIDs, bulbColors, bExitWithPSMoveService)) {
 			std::cout << "Command line arguments are not valid." << std::endl;
 			bRun = false;;
 		}
@@ -123,7 +167,7 @@ int main(int argc, char** argv)
 
 	if (bRun) {
 		FreepieMoveClient* client = new FreepieMoveClient();
-		client->run(controllerCount, controllerIDs, bulbColors, freepieIndicies, controllerCount < 2);
+		client->run(deviceType, deviceCount, deviceIDs, bulbColors, freepieIndicies, deviceCount < 2);
 	}
 
 	std::cout << "PSMoveFreepieBridge has ended" << std::endl;
