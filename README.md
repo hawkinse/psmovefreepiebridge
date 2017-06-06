@@ -55,6 +55,9 @@ Bit 7 - Select
 
 # Release Changelog #
 
+### Release 13 ###
+* Add support for PSMoveService Virtual HMDs.
+
 ### Release 12 ###
 * Migrate to the new C API used by PSMoveService.
 
