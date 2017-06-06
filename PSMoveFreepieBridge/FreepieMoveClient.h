@@ -5,17 +5,24 @@
 
 #define FPS_REPORT_DURATION 500 // ms
 
+enum eDeviceType
+{
+    _deviceTypeHMD = 1,
+    _deviceTypeController = 2,
+};
+
 class FreepieMoveClient
 {
 public:
 	FreepieMoveClient();
 	~FreepieMoveClient();
 
-	int run(int32_t controllerCount, PSMControllerID controllerIDs[], PSMTrackingColorType bulbColors[], int32_t freepieIndicies[], bool sendSensorData = true);
+	int run(eDeviceType deviceType, int32_t deviceCount, int32_t deviceIDs[], PSMTrackingColorType bulbColors[], int32_t freepieIndicies[], bool sendSensorData = true);
 
 	void handle_client_psmove_event(PSMEventMessage::eEventType event_type);
 
-	void handle_acquire_controller(PSMResult resultCode, PSMControllerID trackedControllerIndex);
+	void handle_acquire_hmd(PSMResult resultCode, PSMHmdID trackedHmdIndex);
+    void handle_acquire_controller(PSMResult resultCode, PSMControllerID trackedControllerIndex);
 
 	bool startup();
 
@@ -25,16 +32,22 @@ public:
 
 private:
 	bool m_keepRunning = true;
+    eDeviceType m_device_type;
+    PSMHeadMountedDisplay *hmd_views[4] = { nullptr, nullptr, nullptr, nullptr };
 	PSMController *controller_views[4] = { nullptr, nullptr, nullptr, nullptr };
 	std::chrono::milliseconds last_report_fps_timestamp;
 	PSMRequestID start_stream_request_ids[4] = { -1, -1, -1, -1 };
 	PSMControllerID* trackedControllerIDs;
+    PSMHmdID* trackedHmdIDs;
 	int32_t* trackedFreepieIndicies;
 	PSMTrackingColorType* trackedBulbColors;
 	int32_t trackedControllerCount = 1;
+    int32_t trackedHmdCount = 1;
 	bool m_sendSensorData = false;
 
 	void init_controller_views();
 	void free_controller_views();
+	void init_hmd_views();
+	void free_hmd_views();
 };
 

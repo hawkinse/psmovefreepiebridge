@@ -1,6 +1,11 @@
 #ifndef CLIENT_CONSTANTS_H
 #define CLIENT_CONSTANTS_H
 
+/** 
+\addtogroup PSMoveClient_CAPI 
+@{ 
+*/
+
 //-- constants -----
 #define PSMOVESERVICE_DEFAULT_ADDRESS   "localhost"
 #define PSMOVESERVICE_DEFAULT_PORT      "9512"
@@ -13,7 +18,7 @@
 #define PSMOVESERVICE_MAX_TRACKER_COUNT  4
 
 // See HMDManager.h in PSMoveService
-#define PSMOVESERVICE_MAX_HMD_COUNT  1
+#define PSMOVESERVICE_MAX_HMD_COUNT  4
 
 // The length of a controller serial string: "xx:xx:xx:xx:xx:xx\0"
 #define PSMOVESERVICE_CONTROLLER_SERIAL_LEN  18
@@ -42,5 +47,9 @@
     #define GET_PSMOVEPROTOCOL_EVENT(handle) \
     reinterpret_cast<const PSMoveProtocol::Response *>(handle) // events are a special case of responses
 #endif // defined(__cplusplus) && defined(HAS_PROTOCOL_ACCESS)
+
+/** 
+@} 
+*/ 
 
 #endif // CLIENT_CONSTANTS_H
