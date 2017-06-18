@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "FreepieMoveClient.h"
 
-void prompt_arguments(eDeviceType &deviceType, int32_t &deviceCount, int* deviceIDs, PSMTrackingColorType* bulbColors) {
+void prompt_arguments(eDeviceType &deviceType, int32_t &deviceCount, int* deviceIDs, PSMTrackingColorType* bulbColors, int32_t &triggerAxis) {
 	int rawDeviceType= 0;
 	std::cout << "1) HMD " << std::endl;
 	std::cout << "2) Controllers " << std::endl;
@@ -32,7 +32,7 @@ void prompt_arguments(eDeviceType &deviceType, int32_t &deviceCount, int* device
 		if (deviceType == _deviceTypeController)
 		{
 			char customColorChoice;
-		std::cout << "Do you want to use a custom bulb color for this controller (y/n)? ";
+		    std::cout << "Do you want to use a custom bulb color for this controller (y/n)? ";
 			std::cin >> customColorChoice;
 			if (customColorChoice == 'Y' || customColorChoice == 'y') {
 				std::cout << "Color Options:\n";
@@ -56,9 +56,24 @@ void prompt_arguments(eDeviceType &deviceType, int32_t &deviceCount, int* device
 		deviceIDs[i] = deviceID;
 		bulbColors[i] = bulbColor;
 	}
+
+	if (deviceType == _deviceTypeController)
+	{
+        std::cout << "For virtual controllers, which axis corresponds to the trigger (-1 for default): ";
+		std::cin >> triggerAxis;
+    }
 }
 
-bool parse_arguments(int argc, char** argv, eDeviceType deviceType, int32_t &deviceCount, PSMControllerID* deviceIDs, PSMTrackingColorType* bulbColors, bool &bExitWithPSMoveService) {
+bool parse_arguments(
+    int argc, 
+    char** argv, 
+    eDeviceType deviceType, 
+    int32_t &deviceCount, 
+    PSMControllerID* deviceIDs, 
+    PSMTrackingColorType* bulbColors,
+    int32_t &triggerAxis,
+    bool &bExitWithPSMoveService) 
+{
 	bool bSuccess = true;
 
 	int index = 1;
@@ -113,6 +128,14 @@ bool parse_arguments(int argc, char** argv, eDeviceType deviceType, int32_t &dev
 				index++;
 			}
 		}
+		else if (strcmp(argv[index], "-triggerAxis") == 0) {
+			index++;
+
+			if ((index < argc) && isdigit(*argv[index])) {
+				triggerAxis = atoi(argv[index]);
+				index++;
+			}
+		}
 		else if (strcmp(argv[index], "-x") == 0) {
 			std::cout << "-x flag specified. Will not keep window open when finished" << std::endl;
 			bExitWithPSMoveService = true;
@@ -151,15 +174,16 @@ int main(int argc, char** argv)
 	int32_t deviceCount = 0;
 	int deviceIDs[4];
 	int32_t freepieIndicies[4] = { 0, 1, 2, 3 };
+    int32_t triggerAxis= -1;
 	PSMTrackingColorType bulbColors[4] = { PSMTrackingColorType_MaxColorTypes, PSMTrackingColorType_MaxColorTypes, PSMTrackingColorType_MaxColorTypes, PSMTrackingColorType_MaxColorTypes };
 	bool bRun = true;
 	bool bExitWithPSMoveService = false;
 
 	if (argc == 1) {
-		prompt_arguments(deviceType, deviceCount, deviceIDs, bulbColors);
+		prompt_arguments(deviceType, deviceCount, deviceIDs, bulbColors, triggerAxis);
 	}
 	else {
-		if (!parse_arguments(argc, argv, deviceType, deviceCount, deviceIDs, bulbColors, bExitWithPSMoveService)) {
+		if (!parse_arguments(argc, argv, deviceType, deviceCount, deviceIDs, bulbColors, triggerAxis, bExitWithPSMoveService)) {
 			std::cout << "Command line arguments are not valid." << std::endl;
 			bRun = false;;
 		}
@@ -167,7 +191,7 @@ int main(int argc, char** argv)
 
 	if (bRun) {
 		FreepieMoveClient* client = new FreepieMoveClient();
-		client->run(deviceType, deviceCount, deviceIDs, bulbColors, freepieIndicies, deviceCount < 2);
+		client->run(deviceType, deviceCount, deviceIDs, bulbColors, freepieIndicies, deviceCount < 2, triggerAxis);
 	}
 
 	std::cout << "PSMoveFreepieBridge has ended" << std::endl;

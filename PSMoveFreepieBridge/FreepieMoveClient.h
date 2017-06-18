@@ -17,7 +17,14 @@ public:
 	FreepieMoveClient();
 	~FreepieMoveClient();
 
-	int run(eDeviceType deviceType, int32_t deviceCount, int32_t deviceIDs[], PSMTrackingColorType bulbColors[], int32_t freepieIndicies[], bool sendSensorData = true);
+	int run(
+        eDeviceType deviceType, 
+        int32_t deviceCount, 
+        int32_t deviceIDs[], 
+        PSMTrackingColorType bulbColors[], 
+        int32_t freepieIndicies[], 
+        bool sendSensorData = true,
+        int triggerAxisIndex = -1);
 
 	void handle_client_psmove_event(PSMEventMessage::eEventType event_type);
 
@@ -44,6 +51,7 @@ private:
 	int32_t trackedControllerCount = 1;
     int32_t trackedHmdCount = 1;
 	bool m_sendSensorData = false;
+    int32_t m_triggerAxisIndex = -1;
 
 	void init_controller_views();
 	void free_controller_views();
