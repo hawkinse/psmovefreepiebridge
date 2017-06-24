@@ -55,7 +55,7 @@ Bit 7 - Select
 
 # Release Changelog #
 
-### Release 13 ###
+### Release 14 ###
 * Add support for PSMoveService Virtual Controllers.
 * Example FreePIE script no longer attempts to adjust orientation for Riftcat VRidge. VRidge should now work properly with actual values.
 
