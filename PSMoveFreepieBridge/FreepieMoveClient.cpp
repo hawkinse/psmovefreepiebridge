@@ -17,7 +17,14 @@ FreepieMoveClient::FreepieMoveClient()
 {
 }
 
-int FreepieMoveClient::run(eDeviceType deviceType, int32_t deviceCount, int32_t deviceIDs[], PSMTrackingColorType bulbColors[], int32_t freepieIndicies[], bool sendSensorData)
+int FreepieMoveClient::run(
+    eDeviceType deviceType, 
+    int32_t deviceCount, 
+    int32_t deviceIDs[], 
+    PSMTrackingColorType bulbColors[], 
+    int32_t freepieIndicies[], 
+    bool sendSensorData, 
+    int triggerAxisIndex)
 {
 	// Attempt to start and run the client
 	try
@@ -38,6 +45,7 @@ int FreepieMoveClient::run(eDeviceType deviceType, int32_t deviceCount, int32_t 
 		trackedFreepieIndicies = freepieIndicies;
 		trackedBulbColors = bulbColors;
 		m_sendSensorData = sendSensorData;
+        m_triggerAxisIndex = triggerAxisIndex;
 
 		if (startup())
 		{
@@ -298,15 +306,18 @@ void FreepieMoveClient::update()
 	{
 		for (int i = 0; i < trackedControllerCount; i++)
 		{
-			if (controller_views[i] && controller_views[i]->bValid && controller_views[i]->ControllerType == PSMController_Move)
+			if (controller_views[i] && controller_views[i]->bValid && 
+                (controller_views[i]->ControllerType == PSMController_Move || 
+                 controller_views[i]->ControllerType == PSMController_Virtual))
 			{
 				std::chrono::milliseconds now =
 					std::chrono::duration_cast<std::chrono::milliseconds>(
 						std::chrono::system_clock::now().time_since_epoch());
 				std::chrono::milliseconds diff = now - last_report_fps_timestamp;
 
-				PSMPSMove moveView = controller_views[i]->ControllerState.PSMoveState;
-				PSMPosef controllerPose = moveView.Pose;
+				
+				PSMPosef controllerPose;
+                PSM_GetControllerPose(controller_views[i]->ControllerID, &controllerPose);
 
 				freepie_io_6dof_data poseData;
 				PSMQuatf normalizedQuat = PSM_QuatfNormalizeWithDefault(&controllerPose.Orientation, k_psm_quaternion_identity);
@@ -328,65 +339,135 @@ void FreepieMoveClient::update()
 
 				WriteToFreepie(poseData, trackedFreepieIndicies[i]);
 
-				if (m_sendSensorData)
-				{
-					PSMPSMoveCalibratedSensorData sensors = moveView.CalibratedSensorData;
+                if (controller_views[i]->ControllerType == PSMController_Move)
+                {
+				    if (m_sendSensorData)
+				    {
+                        const PSMPSMove &moveView = controller_views[i]->ControllerState.PSMoveState;
+					    const PSMPSMoveCalibratedSensorData &sensors = moveView.CalibratedSensorData;
 
-					//Send sensor data through pos/rot struct
-					freepie_io_6dof_data sensorData1;
-					sensorData1.x = sensors.Accelerometer.x;
-					sensorData1.y = sensors.Accelerometer.y;
-					sensorData1.z = sensors.Accelerometer.z;
+					    //Send sensor data through pos/rot struct
+					    freepie_io_6dof_data sensorData1;
+					    sensorData1.x = sensors.Accelerometer.x;
+					    sensorData1.y = sensors.Accelerometer.y;
+					    sensorData1.z = sensors.Accelerometer.z;
 
-					sensorData1.pitch = sensors.Gyroscope.x;
-					sensorData1.roll = sensors.Gyroscope.y;
-					sensorData1.yaw = sensors.Gyroscope.z;
-					WriteToFreepie(sensorData1, 1);
+					    sensorData1.pitch = sensors.Gyroscope.x;
+					    sensorData1.roll = sensors.Gyroscope.y;
+					    sensorData1.yaw = sensors.Gyroscope.z;
+					    WriteToFreepie(sensorData1, 1);
 
-					freepie_io_6dof_data sensorData2;
-					sensorData2.x = sensors.Magnetometer.x;
-					sensorData2.y = sensors.Magnetometer.y;
-					sensorData2.z = sensors.Magnetometer.z;
+					    freepie_io_6dof_data sensorData2;
+					    sensorData2.x = sensors.Magnetometer.x;
+					    sensorData2.y = sensors.Magnetometer.y;
+					    sensorData2.z = sensors.Magnetometer.z;
 
-					WriteToFreepie(sensorData2, 2);
-				}
+					    WriteToFreepie(sensorData2, 2);
+				    }
 
-				// If we have less than four controllers, also include button data
-				if (trackedControllerCount < 4)
-				{
-					float triggerState = static_cast<float>(moveView.TriggerValue) / 255.f;
-					uint8_t buttonsPressed = 0;
+				    // If we have less than four controllers, also include button data
+				    if (trackedControllerCount < 4)
+				    {
+                        const PSMPSMove &moveView = controller_views[i]->ControllerState.PSMoveState;
 
-					buttonsPressed |= (moveView.SquareButton == PSMButtonState_DOWN);
-					buttonsPressed |= ((moveView.TriangleButton == PSMButtonState_DOWN) << 1);
-					buttonsPressed |= ((moveView.CrossButton == PSMButtonState_DOWN) << 2);
-					buttonsPressed |= ((moveView.CircleButton == PSMButtonState_DOWN) << 3);
-					buttonsPressed |= ((moveView.MoveButton == PSMButtonState_DOWN) << 4);
-					buttonsPressed |= ((moveView.PSButton == PSMButtonState_DOWN) << 5);
-					buttonsPressed |= ((moveView.StartButton == PSMButtonState_DOWN) << 6);
-					buttonsPressed |= ((moveView.SelectButton == PSMButtonState_DOWN) << 7);
+					    float triggerState = static_cast<float>(moveView.TriggerValue) / 255.f;
+					    uint8_t buttonsPressed = 0;
 
-					switch (i)
-					{
-						case 0:
-							buttonData.x = buttonsPressed;
-							buttonData.yaw = triggerState;
-							break;
-						case 1:
-							buttonData.y = buttonsPressed;
-							buttonData.pitch = triggerState;
-							break;
-						case 2:
-							buttonData.z = buttonsPressed;
-							buttonData.roll = triggerState;
-							break;
-						case 3:
-							break;
-						defaut:
-							std::cout << "Unable to set button data for controller " << i << std::endl;
-							break;
-					}
-				}
+					    buttonsPressed |= (moveView.SquareButton == PSMButtonState_DOWN || moveView.SquareButton == PSMButtonState_PRESSED);
+					    buttonsPressed |= ((moveView.TriangleButton == PSMButtonState_DOWN || moveView.TriangleButton == PSMButtonState_PRESSED) << 1);
+					    buttonsPressed |= ((moveView.CrossButton == PSMButtonState_DOWN || moveView.CrossButton == PSMButtonState_PRESSED) << 2);
+					    buttonsPressed |= ((moveView.CircleButton == PSMButtonState_DOWN || moveView.CircleButton == PSMButtonState_PRESSED) << 3);
+					    buttonsPressed |= ((moveView.MoveButton == PSMButtonState_DOWN || moveView.MoveButton == PSMButtonState_PRESSED) << 4);
+					    buttonsPressed |= ((moveView.PSButton == PSMButtonState_DOWN || moveView.PSButton == PSMButtonState_PRESSED) << 5);
+					    buttonsPressed |= ((moveView.StartButton == PSMButtonState_DOWN || moveView.StartButton == PSMButtonState_PRESSED) << 6);
+					    buttonsPressed |= ((moveView.SelectButton == PSMButtonState_DOWN || moveView.SelectButton == PSMButtonState_PRESSED) << 7);
+
+					    switch (i)
+					    {
+						    case 0:
+							    buttonData.x = buttonsPressed;
+							    buttonData.yaw = triggerState;
+							    break;
+						    case 1:
+							    buttonData.y = buttonsPressed;
+							    buttonData.pitch = triggerState;
+							    break;
+						    case 2:
+							    buttonData.z = buttonsPressed;
+							    buttonData.roll = triggerState;
+							    break;
+						    case 3:
+							    break;
+						    default:
+							    std::cout << "Unable to set button data for controller " << i << std::endl;
+							    break;
+					    }
+				    }
+                }
+                else if (controller_views[i]->ControllerType == PSMController_Virtual)
+                {
+                    const PSMVirtualController &controllerView = controller_views[i]->ControllerState.VirtualController;
+
+				    if (m_sendSensorData)
+				    {
+                        // Virtual controllers have no sensor data
+					    // Send sensor data through pos/rot struct
+					    freepie_io_6dof_data sensorData1;
+					    sensorData1.x = 0.f;
+					    sensorData1.y = 0.f;
+					    sensorData1.z = 0.f;
+
+					    sensorData1.pitch = 0.f;
+					    sensorData1.roll = 0.f;
+					    sensorData1.yaw = 0.f;
+					    WriteToFreepie(sensorData1, 1);
+
+					    freepie_io_6dof_data sensorData2;
+					    sensorData2.x = 0.f;
+					    sensorData2.y = 0.f;
+					    sensorData2.z = 0.f;
+					    WriteToFreepie(sensorData2, 2);
+				    }
+
+				    // If we have less than four controllers, also include button data
+				    if (trackedControllerCount < 4)
+				    {                        
+					    float triggerState = 
+                            (m_triggerAxisIndex >= 0 && m_triggerAxisIndex < controllerView.numAxes) 
+                            ? (float)controllerView.axisStates[m_triggerAxisIndex] / 255.f // axis value in range [0,255]
+                            : 0.f;
+					    uint16_t buttonsPressed = 0;
+
+                        int buttonCount= (controllerView.numButtons < 16) ? controllerView.numButtons : 16;
+                        for (int buttonIndex = 0; buttonIndex < buttonCount; ++buttonIndex)
+                        {
+                            int bit= (controllerView.buttonStates[buttonIndex] == PSMButtonState_DOWN || controllerView.buttonStates[buttonIndex] == PSMButtonState_PRESSED) ? 1 : 0;
+
+                            buttonsPressed |= (bit << buttonIndex);
+                        }
+
+					    switch (i)
+					    {
+						    case 0:
+							    buttonData.x = buttonsPressed;
+							    buttonData.yaw = triggerState;
+							    break;
+						    case 1:
+							    buttonData.y = buttonsPressed;
+							    buttonData.pitch = triggerState;
+							    break;
+						    case 2:
+							    buttonData.z = buttonsPressed;
+							    buttonData.roll = triggerState;
+							    break;
+						    case 3:
+							    break;
+						    default:
+							    std::cout << "Unable to set button data for controller " << i << std::endl;
+							    break;
+					    }
+				    }
+                }
 			}
 
 			WriteToFreepie(buttonData, 3);
