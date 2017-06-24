@@ -1,6 +1,6 @@
 def update():
-	freeTrack.pitch = -freePieIO[0].pitch * math.cos(freePieIO[0].yaw/2) - freePieIO[0].roll * math.sin(freePieIO[0].yaw/2)
-	freeTrack.roll = - freePieIO[0].pitch * math.sin(freePieIO[0].yaw/2) + freePieIO[0].roll * math.cos(freePieIO[0].yaw/2)
+	freeTrack.pitch = -freePieIO[0].pitch
+	freeTrack.roll =  freePieIO[0].roll
 	freeTrack.yaw = freePieIO[0].yaw
 	
 	#Multiply by 10 for SteamVR use
